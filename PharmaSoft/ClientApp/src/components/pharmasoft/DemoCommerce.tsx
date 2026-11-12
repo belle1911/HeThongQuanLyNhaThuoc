@@ -119,14 +119,18 @@ function loadInitialCommerce():{products:DemoProduct[];cart:CartLine[];orders:De
   try{
     const stored=JSON.parse(localStorage.getItem(DATA_KEY)||'null')
     if(stored){
+      const savedProducts=Array.isArray(stored.products)&&stored.products.length?stored.products:initialDemoProducts
       return{
-        products:Array.isArray(stored.products)&&stored.products.length?stored.products:initialDemoProducts,
+        products:savedProducts.map((product:DemoProduct,index:number)=>{
+          const id=typeof product.id==='string'&&product.id.trim()?product.id.trim():`MED-${String(index+1).padStart(4,'0')}`
+          return{...product,id,barcode:typeof product.barcode==='string'&&product.barcode.trim()?product.barcode.trim():id}
+        }),
         cart:Array.isArray(stored.cart)?stored.cart:[],
         orders:Array.isArray(stored.orders)&&stored.orders.length?stored.orders:initialDemoOrders,
       }
     }
   }catch{}
-  return{products:initialDemoProducts,cart:[],orders:initialDemoOrders}
+  return{products:initialDemoProducts.map(product=>({...product,barcode:product.barcode||product.id})),cart:[],orders:initialDemoOrders}
 }
 
 export function DemoCommerceProvider({children}:{children:ReactNode}){

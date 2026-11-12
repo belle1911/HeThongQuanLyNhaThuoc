@@ -1,8 +1,9 @@
 import { usePersistentState } from '@/lib/persist'
-import { FormEvent, useMemo, useRef, useState } from 'react'
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import { Badge, Button, Icon } from './App'
 import { DemoProduct, useDemoCommerce } from './DemoCommerce'
 import { exportToExcel, MEDICINE_COLUMNS } from '@/lib/excel'
+import { ProductBarcode } from './ProductBarcode'
 
 type Medicine = DemoProduct
 type Category = { id: string; name: string; count: number; description: string; status: 'Đang sử dụng' | 'Tạm ẩn' }
@@ -24,7 +25,7 @@ const sampleBatches: Batch[] = [
 ]
 const money = (value: number) => `${value.toLocaleString('vi-VN')} VNĐ`
 
-export function MedicineManagement({ initialTab }: { initialTab: 'medicines' | 'categories' }) {
+export function MedicineManagement({ initialTab, initialScanCode }: { initialTab: 'medicines' | 'categories'; initialScanCode?: string }) {
   const [tab, setTab] = useState<'medicines' | 'categories'>(initialTab)
   const {products:medicines,setProducts:setMedicines}=useDemoCommerce()
   const [categories, setCategories] = usePersistentState('categories',initialCategories)
@@ -54,6 +55,17 @@ export function MedicineManagement({ initialTab }: { initialTab: 'medicines' | '
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize))
   const paginated = useMemo(() => filtered.slice((page-1)*pageSize, page*pageSize), [filtered, page])
 
+  useEffect(()=>{
+    if(!initialScanCode)return
+    const medicine=medicines.find(item=>item.id.toLowerCase()===initialScanCode.toLowerCase()||item.barcode.toLowerCase()===initialScanCode.toLowerCase())
+    if(medicine){
+      setTab('medicines')
+      setQuery(initialScanCode)
+      setPage(1)
+      openMedicine(medicine)
+    }
+  },[initialScanCode,medicines])
+
   function handleExport(){
     const rows = filtered.map(m => ({
       id: m.id, name: m.name, category: m.category, unit: m.unit,
@@ -69,8 +81,9 @@ export function MedicineManagement({ initialTab }: { initialTab: 'medicines' | '
     event.preventDefault()
     const data = new FormData(event.currentTarget)
     const value = (key: string) => String(data.get(key) || '')
+    const id = value('id') || `MED-${String(medicines.length + 1).padStart(4,'0')}`
     const medicine: Medicine = {
-      id: value('id') || `MED-${String(medicines.length + 1).padStart(4,'0')}`, name: value('name'), barcode: value('barcode'), ingredient: value('ingredient'), category: value('category'), unit: value('unit'),
+      id, name: value('name'), barcode: value('barcode') || id, ingredient: value('ingredient'), category: value('category'), unit: value('unit'),
       purchase: Number(value('purchase').replace(/\D/g,'')), price: Number(value('price').replace(/\D/g,'')), stock: selected?.stock || 0, expiry: selected?.expiry || 'Chưa có lô', status: selected?.status || 'Chưa nhập kho',
       manufacturer: value('manufacturer'), origin: value('origin'), form: value('form'), strength: value('strength'), minimum: Number(value('minimum')), description: value('description'), color: selected?.color || 'green',
       listed:selected?.listed??true,featured:selected?.featured??false,newArrival:selected?.newArrival??!editing,discount:selected?.discount||0,prescription:selected?.prescription??value('category').toLowerCase().includes('kháng sinh'),
@@ -147,7 +160,7 @@ function MedicineForm({ medicine, editing, categories, onClose, onSubmit }: { me
   }
   return <div className="dialog-layer"><section className="dialog medicine-form-dialog"><div className="dialog__header"><div><div className="eyebrow">{editing ? 'CHỈNH SỬA SẢN PHẨM' : 'SẢN PHẨM MỚI'}</div><h2>{editing ? 'Cập nhật thông tin thuốc' : 'Thêm thuốc vào danh mục'}</h2><p>Nhập thông tin quản lý sản phẩm. Các trường có dấu * là bắt buộc.</p></div><button className="icon-button" onClick={onClose}><Icon name="close" /></button></div><form onSubmit={onSubmit}><div className="medicine-form-layout"><div className="medicine-image-upload" onClick={() => fileRef.current?.click()} style={{cursor:'pointer'}}><input ref={fileRef} type="file" accept="image/*" onChange={handleFile} style={{display:'none'}} />{preview ? <img src={preview} alt="Ảnh thuốc" style={{width:56,height:56,objectFit:'cover',borderRadius:8}} /> : <span><Icon name="package" size={28} /></span>}<strong>{preview ? 'Đã tải ảnh lên' : 'Hình ảnh thuốc'}</strong><small>PNG, JPG tối đa 5MB</small><button type="button" onClick={(e) => { e.stopPropagation(); fileRef.current?.click() }}>{preview ? 'Chọn ảnh khác' : 'Chọn hình ảnh'}</button></div><div className="medicine-form-grid">
     <label className="field"><span>Mã thuốc *</span><input name="id" defaultValue={medicine?.id} placeholder="Tự động nếu để trống" /></label><label className="field"><span>Tên thuốc *</span><input name="name" defaultValue={medicine?.name} placeholder="Ví dụ: Panadol Extra 500mg" required /></label>
-    <label className="field"><span>Mã vạch / Barcode</span><input name="barcode" defaultValue={medicine?.barcode} placeholder="Nhập hoặc quét mã vạch" /></label><label className="field"><span>Hoạt chất</span><input name="ingredient" defaultValue={medicine?.ingredient} placeholder="Tên hoạt chất chính" /></label>
+    <label className="field"><span>Mã vạch / Barcode</span><input name="barcode" defaultValue={medicine?.barcode} placeholder="Để trống để dùng mã thuốc làm mã vạch nội bộ" /></label><label className="field"><span>Hoạt chất</span><input name="ingredient" defaultValue={medicine?.ingredient} placeholder="Tên hoạt chất chính" /></label>
     <label className="field"><span>Danh mục *</span><select name="category" defaultValue={medicine?.category || categories[0].name}>{categories.map(c => <option key={c.id}>{c.name}</option>)}</select></label><label className="field"><span>Nhà sản xuất</span><input name="manufacturer" defaultValue={medicine?.manufacturer} placeholder="Tên nhà sản xuất" /></label>
     <label className="field"><span>Nước sản xuất</span><input name="origin" defaultValue={medicine?.origin} placeholder="Ví dụ: Việt Nam" /></label><label className="field"><span>Đơn vị tính *</span><select name="unit" defaultValue={medicine?.unit || 'Hộp'}><option>Hộp</option><option>Chai</option><option>Tuýp</option><option>Vỉ</option><option>Gói</option><option>Viên</option></select></label>
     <label className="field"><span>Dạng bào chế</span><input name="form" defaultValue={medicine?.form} placeholder="Ví dụ: Viên nén bao phim" /></label><label className="field"><span>Hàm lượng</span><input name="strength" defaultValue={medicine?.strength} placeholder="Ví dụ: 500mg" /></label>
@@ -158,7 +171,7 @@ function MedicineForm({ medicine, editing, categories, onClose, onSubmit }: { me
 
 function MedicineDetail({ medicine, tab, setTab, onClose, onEdit, onBatch }: { medicine: Medicine; tab: 'info'|'batches'|'history'; setTab: (t:'info'|'batches'|'history')=>void; onClose:()=>void; onEdit:()=>void; onBatch:(b:Batch)=>void }) {
   return <div className="dialog-layer"><section className="dialog medicine-detail-dialog"><div className="dialog__header medicine-detail-header"><div className={`medicine-detail-image ${medicine.color}`}><Icon name="package" size={29} /></div><div><div className="eyebrow">{medicine.id}</div><h2>{medicine.name}</h2><p>{medicine.manufacturer} • {medicine.origin}</p></div><Badge kind={medicine.status === 'Đã hết hạn'?'danger':medicine.status.includes('Sắp')?'warning':'ok'}>{medicine.status}</Badge><button className="icon-button" onClick={onClose}><Icon name="close" /></button></div><div className="detail-tabs"><button className={tab==='info'?'active':''} onClick={()=>setTab('info')}>Thông tin chung</button><button className={tab==='batches'?'active':''} onClick={()=>setTab('batches')}>Lô thuốc <span>3</span></button><button className={tab==='history'?'active':''} onClick={()=>setTab('history')}>Lịch sử thay đổi</button></div>
-  {tab === 'info' && <div className="medicine-info-body"><div className="medicine-detail-grid">{[['Mã vạch',medicine.barcode],['Hoạt chất',medicine.ingredient],['Danh mục',medicine.category],['Đơn vị tính',medicine.unit],['Dạng bào chế',medicine.form],['Hàm lượng',medicine.strength],['Giá nhập',money(medicine.purchase)],['Giá bán',money(medicine.price)],['Tồn kho',`${medicine.stock} ${medicine.unit}`],['Tồn tối thiểu',`${medicine.minimum} ${medicine.unit}`],['Hạn gần nhất',medicine.expiry],['Nhà sản xuất',medicine.manufacturer]].map(x=><div key={x[0]}><small>{x[0]}</small><strong>{x[1]}</strong></div>)}</div><div className="medicine-description"><small>MÔ TẢ QUẢN LÝ</small><p>{medicine.description}</p></div></div>}
+  {tab === 'info' && <div className="medicine-info-body"><div className="medicine-detail-grid">{[['Mã thuốc',medicine.id],['Mã vạch / Barcode',medicine.barcode],['Hoạt chất',medicine.ingredient],['Danh mục',medicine.category],['Đơn vị tính',medicine.unit],['Dạng bào chế',medicine.form],['Hàm lượng',medicine.strength],['Giá nhập',money(medicine.purchase)],['Giá bán',money(medicine.price)],['Tồn kho',`${medicine.stock} ${medicine.unit}`],['Tồn tối thiểu',`${medicine.minimum} ${medicine.unit}`],['Hạn gần nhất',medicine.expiry],['Nhà sản xuất',medicine.manufacturer]].map(x=><div key={x[0]}><small>{x[0]}</small><strong>{x[1]}</strong></div>)}</div><ProductBarcode value={medicine.barcode}/><div className="medicine-description"><small>MÔ TẢ QUẢN LÝ</small><p>{medicine.description}</p></div></div>}
   {tab === 'batches' && <div className="batch-list"><div className="batch-summary"><span><small>TỔNG TỒN THEO LÔ</small><strong>{sampleBatches.reduce((a,b)=>a+b.quantity,0)} {medicine.unit}</strong></span><Button icon="plus">Thêm lô thuốc</Button></div>{sampleBatches.map(batch=><button key={batch.number} onClick={()=>onBatch(batch)}><span className="batch-icon"><Icon name="box" /></span><div><strong>{batch.number}</strong><small>Nhập từ {batch.supplier}</small></div><span><small>SỐ LƯỢNG</small><strong>{batch.quantity} {medicine.unit}</strong></span><span><small>HẠN SỬ DỤNG</small><strong>{batch.expiry}</strong></span><Badge kind={batch.status==='Chờ bán'?'warning':'ok'}>{batch.status}</Badge><Icon name="chevron" size={14}/></button>)}</div>}
   {tab === 'history' && <div className="medicine-history">{[['24/06/2025, 14:18','Nguyễn Minh Tuấn','Cập nhật giá bán','60.000 VNĐ → 63.000 VNĐ'],['22/06/2025, 09:42','Trần Thu Hà','Cập nhật tồn kho tối thiểu','15 → 20 hộp'],['18/06/2025, 16:05','Lê Hoàng Nam','Thêm lô thuốc','LO-2501C12 • 62 hộp'],['12/03/2025, 10:30','Nguyễn Minh Tuấn','Tạo sản phẩm','Thông tin sản phẩm được khởi tạo']].map((x,i)=><div key={x[0]}><span className={`history-dot h-${i}`}><Icon name={i===2?'download':i===3?'plus':'settings'} /></span><div><strong>{x[2]}</strong><small>{x[3]}</small><em>{x[1]} • {x[0]}</em></div></div>)}</div>}
   <div className="dialog__footer medicine-detail-footer"><Button variant="secondary" onClick={onClose}>Đóng</Button><Button icon="settings" onClick={onEdit}>Chỉnh sửa thuốc</Button></div></section></div>

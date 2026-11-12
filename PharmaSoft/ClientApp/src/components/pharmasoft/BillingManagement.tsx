@@ -70,6 +70,7 @@ export function BillingManagement({initialTab,initialRecord}:{initialTab:Tab;ini
     if(tab==='invoices'){
       const invoice=allInvoices.find(item=>item.id.toLowerCase()===initialRecord.toLowerCase()||item.order?.id.toLowerCase()===initialRecord.toLowerCase())
       if(invoice){setSelectedInvoice(invoice);setDialog('invoice-detail')}
+      else setQuery(initialRecord)
     }else if(tab==='promotions'){
       const promotion=promotions.find(item=>item.code.toLowerCase()===initialRecord.toLowerCase())
       if(promotion){setSelectedPromotion(promotion);setDialog('promotion-detail')}

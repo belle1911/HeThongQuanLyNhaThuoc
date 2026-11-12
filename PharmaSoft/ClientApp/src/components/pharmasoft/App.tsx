@@ -1,9 +1,9 @@
 'use client'
 
-import { FormEvent, ReactNode, useEffect, useMemo, useState } from 'react'
+import { FormEvent, lazy, ReactNode, Suspense, useEffect, useMemo, useState } from 'react'
 import { AuthModule } from './AuthModule'
 import { DemoAuthModule, DEMO_REMEMBERED_KEY, DEMO_SESSION_KEY } from './DemoAuthModule'
-import { DemoCommerceProvider } from './DemoCommerce'
+import { DemoCommerceProvider, useDemoCommerce } from './DemoCommerce'
 import { CustomerStore } from './CustomerStore'
 import { AccountManagement } from './AccountManagement'
 import { Dashboard } from './Dashboard'
@@ -21,6 +21,8 @@ import { DeveloperHandoff } from './DeveloperHandoff'
 import { RoleDashboard, UserProfile } from './RoleDashboard'
 import { demoUsers, roleHome, roleMenus, SessionUser } from './roles'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
+
+const ScanDialog=lazy(()=>import('./ScanDialog').then(module=>({default:module.ScanDialog})))
 
 export type IconName =
   | 'activity'
@@ -48,6 +50,7 @@ export type IconName =
   | 'percent'
   | 'plus'
   | 'search'
+  | 'scan'
   | 'settings'
   | 'shield'
   | 'store'
@@ -80,6 +83,7 @@ const paths: Record<IconName, ReactNode> = {
   percent: <><path d="m19 5-14 14" /><circle cx="7" cy="7" r="2" /><circle cx="17" cy="17" r="2" /></>,
   plus: <><path d="M12 5v14M5 12h14" /></>,
   search: <><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></>,
+  scan: <><path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M7 12h10M12 7v10" /></>,
   settings: <><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-1.6v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z" /></>,
   shield: <><path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z" /><path d="m9 12 2 2 4-4" /></>,
   store: <><path d="M3 10h18l-2-6H5zM5 10v10h14V10M9 20v-6h6v6" /></>,
@@ -187,6 +191,7 @@ function AddMedicineDialog({ open, onClose, onSuccess }: { open: boolean; onClos
 }
 
 function ManagementApp({ user, onLogout, prototypeMode = false, onRoleChange }: { user: SessionUser; onLogout: () => void; prototypeMode?: boolean; onRoleChange?: (user: SessionUser) => void }) {
+  const commerce=useDemoCommerce()
   const [active, setActive] = useState(roleHome[user.role])
   const [mobileOpen, setMobileOpen] = useState(false)
   const [notificationsOpen, setNotificationsOpen] = useState(false)
@@ -199,6 +204,8 @@ function ManagementApp({ user, onLogout, prototypeMode = false, onRoleChange }: 
   const [period, setPeriod] = useState('7 ngày qua')
   const [unreadCount, setUnreadCount] = useState(5)
   const [navigationTarget,setNavigationTarget]=useState<{route:string;record:string;kind:'order'|'invoice'|'product'|'promotion'}|null>(null)
+  const [scanOpen,setScanOpen]=useState(false)
+  const [scanMessage,setScanMessage]=useState('')
   const filteredMedicines = useMemo(() => medicines.filter(item => item.name.toLowerCase().includes(query.toLowerCase()) || item.id.toLowerCase().includes(query.toLowerCase())), [query])
 
   function success() {
@@ -208,11 +215,57 @@ function ManagementApp({ user, onLogout, prototypeMode = false, onRoleChange }: 
   }
   function navigate(route: string,target?:string) {
     const destination=user.role==='customer'&&route==='Hóa đơn'?'Đơn hàng & Hóa đơn':user.role==='customer'&&(route==='Khuyến mãi'||route==='Quản lý kho')?'Cửa hàng thuốc':user.role!=='customer'&&route==='Đơn hàng & Hóa đơn'?'Hóa đơn':route
-    if (destination === 'Hồ sơ cá nhân' || roleMenus[user.role].includes(destination)) {
+    const scanDestination=Boolean(target)&&(route==='Quản lý thuốc'||route==='Cửa hàng thuốc'||route==='Hóa đơn'||route==='Đơn hàng & Hóa đơn')
+    if (destination === 'Hồ sơ cá nhân' || roleMenus[user.role].includes(destination)||scanDestination) {
       setActive(destination)
-      const kind=route==='Khuyến mãi'?'promotion':route==='Quản lý kho'&&user.role==='customer'?'product':route==='Hóa đơn'?'invoice':route==='Đơn hàng & Hóa đơn'?'order':undefined
+      const kind=route==='Khuyến mãi'?'promotion':(route==='Quản lý kho'&&user.role==='customer')||route==='Quản lý thuốc'||route==='Cửa hàng thuốc'?'product':route==='Hóa đơn'?'invoice':route==='Đơn hàng & Hóa đơn'?'order':undefined
       setNavigationTarget(target&&kind?{route:destination,record:target,kind}:null)
     }
+  }
+  function handleScan(rawValue:string):boolean{
+    const candidates=[rawValue.trim()]
+    try{
+      const parsed=JSON.parse(rawValue) as unknown
+      const collect=(value:unknown):void=>{
+        if(typeof value==='string'){candidates.push(value.trim());return}
+        if(Array.isArray(value)){value.forEach(collect);return}
+        if(value&&typeof value==='object')Object.values(value as Record<string,unknown>).forEach(collect)
+      }
+      collect(parsed)
+    }catch{}
+    try{
+      const url=new URL(rawValue)
+      url.searchParams.forEach(value=>candidates.push(value.trim()))
+      candidates.push(decodeURIComponent(url.pathname.split('/').filter(Boolean).pop()||''))
+    }catch{}
+    for(const value of [...candidates]){
+      for(const match of value.matchAll(/\b(?:DH|HD)[A-Z0-9-]+\b/gi))candidates.push(match[0])
+    }
+    const normalized=[...new Set(candidates.map(value=>value.trim()).filter(Boolean))]
+    const product=commerce.products.find(item=>normalized.some(value=>value.toLowerCase()===item.id.toLowerCase()||value.toLowerCase()===item.barcode.toLowerCase()))
+    if(product){
+      const route=user.role==='customer'?'Cửa hàng thuốc':'Quản lý thuốc'
+      setNavigationTarget({route,record:product.id,kind:'product'})
+      setActive(route)
+      setScanMessage('')
+      setScanOpen(false)
+      return true
+    }
+    const order=commerce.orders.find(item=>normalized.some(value=>value.toLowerCase()===item.id.toLowerCase()||value.toLowerCase()===item.invoiceId.toLowerCase()))
+    const scannedOrderId=normalized.find(value=>/^DH[A-Z0-9-]+$/i.test(value))
+    const scannedInvoiceId=normalized.find(value=>/^HD[A-Z0-9-]+$/i.test(value))
+    if(order||scannedOrderId||scannedInvoiceId){
+      const isCustomer=user.role==='customer'
+      const route=isCustomer?'Đơn hàng & Hóa đơn':'Hóa đơn'
+      const record=order?(isCustomer?order.id:order.invoiceId):isCustomer?(scannedOrderId||scannedInvoiceId!):(scannedInvoiceId||scannedOrderId!)
+      setNavigationTarget({route,record,kind:isCustomer?'order':'invoice'})
+      setActive(route)
+      setScanMessage('')
+      setScanOpen(false)
+      return true
+    }
+    setScanMessage(`Mã “${rawValue.trim()}” không khớp với sản phẩm, đơn hàng hoặc hóa đơn nào trong hệ thống.`)
+    return false
   }
   function changeDemoPassword(event:FormEvent<HTMLFormElement>){
     event.preventDefault();setPasswordError('')
@@ -233,7 +286,7 @@ function ManagementApp({ user, onLogout, prototypeMode = false, onRoleChange }: 
     <main className="main">
       <header className="topbar">
         <button className="icon-button mobile-menu" onClick={() => setMobileOpen(true)} aria-label="Mở menu"><Icon name="menu" /></button>
-        <div className="global-search"><Icon name="search" size={19} /><input aria-label="Tìm kiếm toàn hệ thống" placeholder="Tìm thuốc, hóa đơn, khách hàng..." /><kbd>⌘ K</kbd></div>
+        <div className="global-search"><Icon name="search" size={19} /><input aria-label="Tìm kiếm toàn hệ thống" placeholder="Tìm thuốc, hóa đơn, khách hàng..." /><kbd>⌘ K</kbd></div><button className="scan-launch-button" onClick={()=>{setScanMessage('');setScanOpen(true)}} aria-label="Quét QR hoặc mã vạch"><Icon name="scan"/><span>Quét mã</span></button>
         <div className="topbar__actions">
           <div className="popover-wrap">
             <button className="icon-button notification-button" onClick={() => { setNotificationsOpen(!notificationsOpen); setProfileOpen(false) }} aria-label="Thông báo"><Icon name="bell" />{unreadCount > 0 && <span>{unreadCount}</span>}</button>
@@ -265,7 +318,7 @@ function ManagementApp({ user, onLogout, prototypeMode = false, onRoleChange }: 
           {!['Quản lý tài khoản', 'Quản lý thuốc', 'Danh mục thuốc', 'Nhà cung cấp', 'Khách hàng', 'Nhân viên', 'Cửa hàng thuốc', 'Giỏ hàng', 'Đơn hàng & Hóa đơn', 'Bán hàng', 'Quản lý kho', 'Nhập hàng', 'Xuất hàng', 'Kiểm kê kho', 'Hóa đơn', 'Khuyến mãi', 'Báo cáo – Thống kê', 'Chatbot tư vấn thuốc', 'Chat bác sĩ', 'Thông báo', 'Cài đặt hệ thống', 'Tài liệu bàn giao', 'Hồ sơ cá nhân', 'Nhật ký hoạt động'].includes(active) && (active !== 'Tổng quan' || user.role === 'admin' || user.role === 'manager') && <div className="page-heading__actions"><Button variant="secondary" icon="download" onClick={() => navigate('Báo cáo – Thống kê')}>Xuất báo cáo</Button>{active === 'Tổng quan' ? <Button icon="chart" onClick={() => navigate('Báo cáo – Thống kê')}>Tạo báo cáo</Button> : <Button icon="plus" onClick={() => setDialogOpen(true)}>Thêm thuốc mới</Button>}</div>}
         </div>
 
-        {active==='Hồ sơ cá nhân'?<UserProfile user={user} prototypeMode={prototypeMode}/>:active === 'Quản lý tài khoản' ? <AccountManagement prototypeMode={prototypeMode} /> : ['Cửa hàng thuốc','Giỏ hàng','Đơn hàng & Hóa đơn'].includes(active)?<CustomerStore key={active} user={user} initialView={active==='Giỏ hàng'?'cart':active==='Đơn hàng & Hóa đơn'?'orders':'store'} initialOrderId={navigationTarget?.route===active&&['order','invoice'].includes(navigationTarget.kind)?navigationTarget.record:undefined} initialProductId={['product','promotion'].includes(navigationTarget?.kind||'')?navigationTarget?.record:undefined}/>:active === 'Tổng quan' ? (user.role==='admin'||user.role==='manager'?<Dashboard onNavigate={navigate}/>:<RoleDashboard user={user} onNavigate={navigate}/>) : ['Quản lý thuốc', 'Danh mục thuốc'].includes(active) ? <MedicineManagement key={active} initialTab={active === 'Danh mục thuốc' ? 'categories' : 'medicines'} /> : ['Nhà cung cấp','Khách hàng','Nhân viên'].includes(active) ? <BusinessPartners key={active} mode={active === 'Nhà cung cấp' ? 'supplier' : active === 'Khách hàng' ? 'customer' : 'employee'} /> : active === 'Bán hàng' ? <SalesPOS /> : ['Quản lý kho', 'Nhập hàng', 'Xuất hàng', 'Kiểm kê kho'].includes(active) ? <InventoryManagement key={active} initialTab={active === 'Nhập hàng' ? 'receipts' : active === 'Xuất hàng' ? 'issues' : active === 'Kiểm kê kho' ? 'stocktakes' : 'overview'} /> : ['Hóa đơn', 'Khuyến mãi'].includes(active) ? <BillingManagement key={active} initialTab={active === 'Khuyến mãi' ? 'promotions' : 'invoices'} initialRecord={navigationTarget?.route===active?navigationTarget.record:undefined}/> : active === 'Nhật ký hoạt động' ? <AuditLog /> : active === 'Báo cáo – Thống kê' ? <ReportsAnalytics /> : active === 'Chatbot tư vấn thuốc' ? <MedicineChatbot onNavigate={navigate} /> : active === 'Chat bác sĩ' ? <DoctorChat defaultPortal={user.role==='doctor'?'doctor':'customer'} demoDoctorAuthenticated={prototypeMode&&user.role==='doctor'} /> : active === 'Thông báo' ? <NotificationCenter onUnreadChange={setUnreadCount} onNavigate={navigate} /> : active === 'Cài đặt hệ thống' ? <SystemSettings /> : active === 'Tài liệu bàn giao' ? <DeveloperHandoff onNavigate={navigate} /> : <>
+        {active==='Hồ sơ cá nhân'?<UserProfile user={user} prototypeMode={prototypeMode}/>:active === 'Quản lý tài khoản' ? <AccountManagement prototypeMode={prototypeMode} /> : ['Cửa hàng thuốc','Giỏ hàng','Đơn hàng & Hóa đơn'].includes(active)?<CustomerStore key={active} user={user} initialView={active==='Giỏ hàng'?'cart':active==='Đơn hàng & Hóa đơn'?'orders':'store'} initialOrderId={navigationTarget?.route===active&&['order','invoice'].includes(navigationTarget.kind)?navigationTarget.record:undefined} initialProductId={['product','promotion'].includes(navigationTarget?.kind||'')?navigationTarget?.record:undefined}/>:active === 'Tổng quan' ? (user.role==='admin'||user.role==='manager'?<Dashboard onNavigate={navigate}/>:<RoleDashboard user={user} onNavigate={navigate}/>) : ['Quản lý thuốc', 'Danh mục thuốc'].includes(active) ? <MedicineManagement key={active} initialTab={active === 'Danh mục thuốc' ? 'categories' : 'medicines'} initialScanCode={navigationTarget?.route===active&&navigationTarget.kind==='product'?navigationTarget.record:undefined} /> : ['Nhà cung cấp','Khách hàng','Nhân viên'].includes(active) ? <BusinessPartners key={active} mode={active === 'Nhà cung cấp' ? 'supplier' : active === 'Khách hàng' ? 'customer' : 'employee'} /> : active === 'Bán hàng' ? <SalesPOS /> : ['Quản lý kho', 'Nhập hàng', 'Xuất hàng', 'Kiểm kê kho'].includes(active) ? <InventoryManagement key={active} initialTab={active === 'Nhập hàng' ? 'receipts' : active === 'Xuất hàng' ? 'issues' : active === 'Kiểm kê kho' ? 'stocktakes' : 'overview'} /> : ['Hóa đơn', 'Khuyến mãi'].includes(active) ? <BillingManagement key={active} initialTab={active === 'Khuyến mãi' ? 'promotions' : 'invoices'} initialRecord={navigationTarget?.route===active?navigationTarget.record:undefined}/> : active === 'Nhật ký hoạt động' ? <AuditLog /> : active === 'Báo cáo – Thống kê' ? <ReportsAnalytics /> : active === 'Chatbot tư vấn thuốc' ? <MedicineChatbot onNavigate={navigate} /> : active === 'Chat bác sĩ' ? <DoctorChat defaultPortal={user.role==='doctor'?'doctor':'customer'} demoDoctorAuthenticated={prototypeMode&&user.role==='doctor'} /> : active === 'Thông báo' ? <NotificationCenter onUnreadChange={setUnreadCount} onNavigate={navigate} /> : active === 'Cài đặt hệ thống' ? <SystemSettings /> : active === 'Tài liệu bàn giao' ? <DeveloperHandoff onNavigate={navigate} /> : <>
         <section className="stats-grid" aria-label="Chỉ số chính">
           <StatCard label="Doanh thu hôm nay" value="28.450.000 VNĐ" change="12,5%" icon="activity" tone="green" />
           <StatCard label="Đơn hàng" value="186" change="8,2%" icon="invoice" tone="blue" />
@@ -327,6 +380,7 @@ function ManagementApp({ user, onLogout, prototypeMode = false, onRoleChange }: 
       </div>
     </main>
     <AddMedicineDialog open={dialogOpen} onClose={() => setDialogOpen(false)} onSuccess={success} />
+    {scanOpen&&<Suspense fallback={<div className="dialog-layer"><section className="dialog scan-dialog"><p>Đang tải chức năng quét...</p></section></div>}><ScanDialog message={scanMessage} onClose={()=>setScanOpen(false)} onScan={handleScan}/></Suspense>}
     {passwordDialog&&<div className="dialog-layer"><section className="dialog account-password-dialog"><div className="dialog__header"><div><div className="eyebrow">BẢO MẬT TÀI KHOẢN DEMO</div><h2>Đổi mật khẩu</h2><p>Mật khẩu mới chỉ được lưu cục bộ trong trình duyệt.</p></div><button className="icon-button" onClick={()=>setPasswordDialog(false)}><Icon name="close"/></button></div>{passwordError&&<div className="auth-alert"><Icon name="help"/><div><strong>Không thể cập nhật</strong><span>{passwordError}</span></div></div>}<form onSubmit={changeDemoPassword}><div className="form-grid"><label className="field field--wide"><span>Mật khẩu hiện tại</span><input name="current" type="password" required/></label><label className="field"><span>Mật khẩu mới</span><input name="password" type="password" minLength={8} required/></label><label className="field"><span>Xác nhận mật khẩu</span><input name="confirmation" type="password" minLength={8} required/></label></div><div className="dialog__footer"><Button variant="secondary" onClick={()=>setPasswordDialog(false)}>Hủy bỏ</Button><Button type="submit">Lưu mật khẩu mới</Button></div></form></section></div>}
     {toast && <div className="toast" role="status"><span><Icon name="check" /></span><div><strong>Thêm thuốc thành công</strong><small>Sản phẩm mới đã được lưu vào danh mục.</small></div><button onClick={() => setToast(false)} aria-label="Đóng"><Icon name="close" size={17} /></button></div>}
   </div>
