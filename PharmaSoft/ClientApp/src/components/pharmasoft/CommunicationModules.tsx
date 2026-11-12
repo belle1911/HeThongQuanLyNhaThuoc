@@ -42,7 +42,7 @@ export function MedicineChatbot({onNavigate}:{onNavigate?:(view:string)=>void}){
     ]}
   ])
   const bottom=useRef<HTMLDivElement>(null)
-  useEffect(()=>bottom.current?.scrollIntoView({behavior:'smooth'}),[messages,loading])
+  useEffect(()=>{bottom.current?.scrollIntoView({behavior:'smooth'})},[messages,loading])
 
   function reply(question:string):{text:string;products?:Medicine[];error?:boolean;doctorReferral?:boolean}{
     const raw=question.trim(),lower=raw.toLowerCase()
