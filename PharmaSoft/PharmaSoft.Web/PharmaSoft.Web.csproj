@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <RollForward>Major</RollForward>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Đổi thành true khi muốn lưu dữ liệu vào Oracle (cần mạng để tải gói NuGet lần đầu) -->
+    <UseOracle>false</UseOracle>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(UseOracle)' == 'true'">
+    <DefineConstants>$(DefineConstants);ORACLE</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(UseOracle)' == 'true'">
+    <PackageReference Include="Oracle.ManagedDataAccess.Core" Version="23.*" />
+  </ItemGroup>
+
+</Project>
