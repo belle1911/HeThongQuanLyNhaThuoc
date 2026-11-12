@@ -3,6 +3,7 @@ import assert from 'node:assert'
 import { generateOTP, isValidViPhone, maskPhone, createOTPSession, verifyOTP } from '../lib/otp.ts'
 import { INVOICE_COLUMNS, MEDICINE_COLUMNS, SUPPLIER_COLUMNS } from '../lib/excel.ts'
 import { roleMenus, demoUsers } from '../components/pharmasoft/roles.ts'
+import { buildInvoiceHtml } from '../lib/print.ts'
 
 test('OTP logic: generateOTP creates a 6-digit number', () => {
   const code = generateOTP()
@@ -92,4 +93,26 @@ test('Invoice calculations: item discount and subtotal logic', () => {
   const total = items.reduce((sum, item) => sum + item.quantity * item.price * (1 - item.discount / 100), 0)
   assert.strictEqual(total, 230000)
 })
+
+test('Invoice printing: buildInvoiceHtml produces complete printable HTML with details', () => {
+  const invoice = {
+    id: 'HD12345678',
+    date: '12/11/2026',
+    time: '14:00',
+    customer: 'Nguyễn Văn A',
+    phone: '0901234567',
+    employee: 'Dược sĩ B',
+    payment: 'Chuyển khoản',
+    status: 'Đã thanh toán',
+    items: [
+      { name: 'Panadol Extra', unit: 'Hộp', price: 42000, quantity: 2, discount: 5 }
+    ]
+  }
+  const html = buildInvoiceHtml(invoice)
+  assert.ok(html.includes('HD12345678'))
+  assert.ok(html.includes('Nguyễn Văn A'))
+  assert.ok(html.includes('Panadol Extra'))
+  assert.ok(html.includes('79.800'))
+})
+
 

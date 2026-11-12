@@ -6,7 +6,8 @@
 /** Mở iframe ẩn, in nội dung HTML hoàn chỉnh, rồi xóa iframe */
 export function printHtmlDirect(fullHtml: string): void {
   const frame = document.createElement('iframe')
-  frame.style.cssText = 'position:fixed;width:0;height:0;border:0;opacity:0;top:-9999px;left:-9999px'
+  // Cung cấp kích thước viewport đầy đủ thay vì 0x0 để Chrome render layout A4 chuẩn xác
+  frame.style.cssText = 'position:fixed;right:0;bottom:0;width:100%;height:100%;border:0;opacity:0;pointer-events:none;z-index:-9999;'
   frame.setAttribute('aria-hidden', 'true')
   document.body.appendChild(frame)
 
@@ -17,7 +18,10 @@ export function printHtmlDirect(fullHtml: string): void {
   doc.write(fullHtml)
   doc.close()
 
+  let printed = false
   const runPrint = () => {
+    if (printed) return
+    printed = true
     try {
       frame.contentWindow?.focus()
       frame.contentWindow?.print()
@@ -28,11 +32,12 @@ export function printHtmlDirect(fullHtml: string): void {
         if (frame.parentNode) {
           frame.parentNode.removeChild(frame)
         }
-      }, 3000)
+      }, 4000)
     }
   }
 
-  setTimeout(runPrint, 250)
+  frame.onload = runPrint
+  setTimeout(runPrint, 300)
 }
 
 /** In phần tử theo className (lấy phần tử đầu tiên khớp) */

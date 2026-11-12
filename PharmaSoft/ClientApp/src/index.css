@@ -251,6 +251,12 @@ footer { display: flex; justify-content: space-between; padding: 22px 2px 0; col
 }
 @media print {
   @page { size: A4 portrait; margin: 12mm 15mm; }
+  html, body, #root, .app-layout, .content-shell, .store-page {
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+    position: static !important;
+  }
   body { background: white !important; color: #18241e !important; }
   .sidebar, .topbar, .prototype-toolbar, .breadcrumb, .toast,
   .inventory-tabs, .customer-store-tabs, .customer-order-filters,
