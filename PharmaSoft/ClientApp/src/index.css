@@ -629,7 +629,7 @@ button.popover__footer { width: 100%; border: 0; background: transparent; }
 .demo-auth-disclaimer { position:relative;z-index:1;display:flex;align-items:center;gap:9px;border-top:1px solid rgba(255,255,255,.18);padding-top:18px;color:rgba(255,255,255,.78);font-size:7px; }
 .demo-auth-disclaimer strong { display:block;color:#fff;font-size:7px;letter-spacing:.08em; }
 .demo-auth-panel { display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0;padding:32px; }
-.demo-auth-card { width:min(400px,100%);border:1px solid #dfe9e3;border-radius:18px;background:#fff;box-shadow:0 18px 48px rgba(24,73,47,.1);padding:29px; }
+.demo-auth-card { width:min(460px,100%);border:1px solid #dfe9e3;border-radius:18px;background:#fff;box-shadow:0 18px 48px rgba(24,73,47,.1);padding:29px; }
 .demo-auth-card.wide { width:min(620px,100%); }
 .demo-auth-mobile-brand { display:none;align-items:center;gap:9px;margin-bottom:24px; }
 .demo-auth-mobile-brand>span { margin-left:auto;border-radius:999px;background:#eaf6ef;padding:5px 8px;color:#16834a;font-size:6px;font-weight:800; }
@@ -642,14 +642,30 @@ button.popover__footer { width: 100%; border: 0; background: transparent; }
 .demo-otp-code strong { margin:7px 0 3px;color:#16834a;font-size:25px;letter-spacing:.24em; }
 .demo-otp-code small { color:#7b8d83;font-size:7px; }
 .demo-otp-input { height:50px!important;text-align:center;font-size:20px!important;font-weight:800!important;letter-spacing:.35em!important; }
-.demo-account-help { margin-top:17px;border:1px solid #dce9e1;border-radius:10px;background:#f6faf8; }
-.demo-account-help summary { display:flex;align-items:center;gap:7px;padding:10px 12px;color:#47705a;font-size:7px;font-weight:700;cursor:pointer;list-style:none; }
-.demo-account-help summary::-webkit-details-marker { display:none; }
-.demo-account-help>div { display:grid;grid-template-columns:1fr 1fr;gap:5px;border-top:1px solid #e1ebe5;padding:10px; }
-.demo-account-help p,.demo-account-help>div>small { grid-column:1/-1;margin:0;color:#7b8981;font-size:6px;line-height:1.5; }
-.demo-account-help p strong { color:#16834a; }
-.demo-account-help button { display:flex;justify-content:space-between;border:1px solid #e1e9e4;border-radius:6px;background:#fff;padding:6px 7px;color:#66766d;font-size:6px;text-align:left; }
-.demo-account-help button strong { color:#2e5c43; }
+.demo-account-help { margin-top:16px;border:1px solid #e2ebe5;border-radius:13px;background:linear-gradient(145deg,#f7fbf8,#f2f8f4);padding:12px; }
+.demo-account-help__heading { display:flex;align-items:center;gap:9px;margin:0 1px 10px; }
+.demo-account-help__heading>span { display:grid;width:30px;height:30px;place-items:center;border:1px solid #dcebe1;border-radius:9px;background:#fff;color:#16834a; }
+.demo-account-help__heading>div { display:flex;flex-direction:column;gap:2px; }
+.demo-account-help__heading strong { color:#294838;font-size:10px; }
+.demo-account-help__heading small { color:#829087;font-size:8px; }
+.demo-account-help__list { display:grid;grid-template-columns:1fr 1fr;gap:7px; }
+.demo-account-help__list button { display:grid;min-width:0;grid-template-columns:30px minmax(0,1fr) 14px;align-items:center;gap:0 8px;border:1px solid #e4ebe6;border-radius:9px;background:rgba(255,255,255,.92);padding:8px;text-align:left;cursor:pointer;transition:border-color .16s,background .16s,box-shadow .16s,transform .16s; }
+.demo-account-help__list button:hover { transform:translateY(-1px);border-color:#a6cdb4;background:#fff;box-shadow:0 4px 12px rgba(36,103,63,.07); }
+.demo-account-help__list button:focus-visible { outline:2px solid #16834a;outline-offset:2px; }
+.demo-account-help__list button.selected { border-color:#4da573;background:#f0f8f3;box-shadow:0 0 0 2px rgba(22,131,74,.08); }
+.demo-account-help__avatar { display:grid;width:30px;height:30px;grid-row:1;place-items:center;border-radius:9px;background:#e9f5ed;color:#16834a;font-size:9px;font-weight:800; }
+.demo-account-help__avatar--manager { background:#edf2ff;color:#5576c6; }
+.demo-account-help__avatar--pharmacist { background:#e9f7f5;color:#258a79; }
+.demo-account-help__avatar--cashier { background:#fff4e5;color:#c47b22; }
+.demo-account-help__avatar--warehouse { background:#f0edfb;color:#795eb8; }
+.demo-account-help__avatar--doctor { background:#e9f2fb;color:#4280bb; }
+.demo-account-help__avatar--customer { background:#fff0f2;color:#bd6477; }
+.demo-account-help__details { display:flex;min-width:0;flex-direction:column;gap:2px; }
+.demo-account-help__details strong { overflow:hidden;color:#6f7f75;font-size:8px;font-weight:600;text-overflow:ellipsis;white-space:nowrap; }
+.demo-account-help__details>span { overflow:hidden;color:#2c4637;font-size:9px;font-weight:750;text-overflow:ellipsis;white-space:nowrap; }
+.demo-account-help__details small { overflow:hidden;color:#16834a;font-size:7px;text-overflow:ellipsis;white-space:nowrap; }
+.demo-account-help__check { display:grid;width:14px;height:14px;place-items:center;color:#16834a; }
+.demo-account-help__note { display:block;margin:9px 1px 0;color:#849087;font-size:7px;line-height:1.4; }
 .profile-popover--demo { width:290px;max-height:min(650px,calc(100vh - 80px));overflow:auto; }
 .demo-role-menu-heading { display:flex;align-items:center;gap:9px;padding:5px 7px 10px; }
 .demo-role-menu-heading>span { border-radius:999px;background:#fff0cb;padding:5px 7px;color:#936716;font-size:6px;font-weight:900; }
@@ -675,8 +691,11 @@ button.popover__footer { width: 100%; border: 0; background: transparent; }
   .demo-auth-panel { justify-content:flex-start;padding:12px; }
   .demo-auth-card,.demo-auth-card.wide { margin-top:10px;border-radius:15px;padding:20px; }
   .demo-register-grid { grid-template-columns:1fr; }
-  .demo-account-help>div { grid-template-columns:1fr; }
-  .demo-account-help p,.demo-account-help>div>small { grid-column:auto; }
+  .demo-account-help { padding:10px; }
+  .demo-account-help__list { gap:6px; }
+  .demo-account-help__list button { grid-template-columns:26px minmax(0,1fr) 12px;gap:0 6px;padding:7px 6px; }
+  .demo-account-help__avatar { width:26px;height:26px;border-radius:8px;font-size:8px; }
+  .demo-account-help__details small { font-size:6px; }
   .profile-popover--demo { position:fixed!important;top:62px!important;right:10px!important;left:10px!important;width:auto!important; }
 }
 
