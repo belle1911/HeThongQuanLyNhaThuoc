@@ -3,6 +3,7 @@ import { Badge, Button, Icon, IconName } from './App'
 import { PieChart, PieSegment } from './charts/PieChart'
 import { BarChart, BarItem } from './charts/BarChart'
 import { exportToExcel } from '@/lib/excel'
+import { printReportStatement } from '@/lib/print'
 
 type ReportGroup='revenue'|'profit'|'inventory'|'sales'|'suppliers'|'customers'
 type Period='Hôm nay'|'7 ngày qua'|'30 ngày qua'|'Tháng này'|'Quý này'|'Tùy chọn'
@@ -64,12 +65,23 @@ export function ReportsAnalytics(){
   const notify=(text:string)=>{setToast(text);window.setTimeout(()=>setToast(''),3000)}
   function selectGroup(id:ReportGroup,item:string){setGroup(id);setReport(item);setQuery('')}
   const currentGroup=groups.find(g=>g.id===group)!
+  function handlePrintReport(){
+    const rows=(group==='profit'?medicineRows:group==='sales'?(report==='Theo nhân viên'?employeeRows:medicineRows):group==='inventory'?inventoryRows:group==='suppliers'?supplierRows:group==='customers'?customerRows:medicineRows)
+    const headers=group==='profit'?['THUỐC','SL BÁN','DOANH THU','GIÁ VỐN','LỢI NHUẬN','BIÊN LN']:group==='inventory'?['THUỐC','TỒN KHO','GIÁ TRỊ','TRẠNG THÁI','HẠN GẦN NHẤT']:group==='suppliers'?['NHÀ CUNG CẤP','PHIẾU NHẬP','GIÁ TRỊ MUA','GẦN NHẤT','TRẠNG THÁI']:group==='customers'?['KHÁCH HÀNG','HẠNG','SỐ ĐƠN','TỔNG CHI TIÊU','TRUNG BÌNH / ĐƠN']:report==='Theo nhân viên'?['NHÂN VIÊN','ĐƠN HÀNG','DOANH THU','TRUNG BÌNH / ĐƠN','TỶ TRỌNG']:['SẢN PHẨM','DOANH THU','ĐƠN HÀNG','GIÁ TRỊ TB','TĂNG TRƯỞNG']
+    printReportStatement({
+      title:`BÁO CÁO ${currentGroup.label.toUpperCase()} — ${report.toUpperCase()}`,
+      subtitle:`Dữ liệu phân tích thống kê nhà thuốc kỳ ${period}`,
+      period:period,
+      headers:headers,
+      rows:rows
+    })
+  }
   return <div className="reports-module">
     <div className="simulation-banner"><Icon name="help"/><div><strong>Báo cáo mô phỏng</strong><span>Số liệu trên màn hình là dữ liệu mẫu phục vụ prototype, không phải phân tích từ cơ sở dữ liệu thực tế.</span></div></div>
     <div className="reports-shell">
       <aside className="report-nav card"><div className="report-nav-title"><strong>Danh mục báo cáo</strong><small>Chọn loại báo cáo cần xem</small></div>{groups.map(g=><div className="report-nav-group" key={g.id}><button className={group===g.id?'active':''} onClick={()=>selectGroup(g.id,g.items[0])}><span><Icon name={g.icon}/></span><strong>{g.label}</strong><Icon name="chevron" size={13}/></button>{group===g.id&&<div>{g.items.map(item=><button key={item} className={report===item?'active':''} onClick={()=>setReport(item)}>{item}</button>)}</div>}</div>)}</aside>
       <main className="report-content">
-        <section className="card report-controls"><div><span className="report-heading-icon"><Icon name={currentGroup.icon}/></span><div><h2>Báo cáo {currentGroup.label.toLowerCase()}</h2><p>{report} • Dữ liệu cập nhật đến 24/06/2025, 14:35</p></div></div><div className="report-export-actions"><Button variant="secondary" icon="download" onClick={()=>{const cols=[{key:'col0',label:currentGroup.label,width:30},{key:'col1',label:'Giá trị',width:20},{key:'col2',label:'So sánh',width:15}];const rows=(group==='profit'?medicineRows:group==='sales'?(report==='Theo nhân viên'?employeeRows:medicineRows):group==='inventory'?inventoryRows:group==='suppliers'?supplierRows:group==='customers'?customerRows:medicineRows).map(r=>({col0:r[0],col1:r[1],col2:r[2]} as Record<string,unknown>));exportToExcel(cols,rows,`bao-cao-${group}`);notify('Đang tải file Excel báo cáo...')}}>Excel</Button><Button variant="secondary" icon="file" onClick={()=>window.print()}>PDF</Button><Button variant="secondary" icon="invoice" onClick={()=>window.print()}>In báo cáo</Button></div></section>
+        <section className="card report-controls"><div><span className="report-heading-icon"><Icon name={currentGroup.icon}/></span><div><h2>Báo cáo {currentGroup.label.toLowerCase()}</h2><p>{report} • Dữ liệu cập nhật đến 24/06/2025, 14:35</p></div></div><div className="report-export-actions"><Button variant="secondary" icon="download" onClick={()=>{const cols=[{key:'col0',label:currentGroup.label,width:30},{key:'col1',label:'Giá trị',width:20},{key:'col2',label:'So sánh',width:15}];const rows=(group==='profit'?medicineRows:group==='sales'?(report==='Theo nhân viên'?employeeRows:medicineRows):group==='inventory'?inventoryRows:group==='suppliers'?supplierRows:group==='customers'?customerRows:medicineRows).map(r=>({col0:r[0],col1:r[1],col2:r[2]} as Record<string,unknown>));exportToExcel(cols,rows,`bao-cao-${group}`);notify('Đang tải file Excel báo cáo...')}}>Excel</Button><Button variant="secondary" icon="file" onClick={handlePrintReport}>PDF</Button><Button variant="secondary" icon="invoice" onClick={handlePrintReport}>In báo cáo</Button></div></section>
         <section className="card report-date-filter"><div className="period-tabs">{periods.map(p=><button key={p} className={period===p?'active':''} onClick={()=>setPeriod(p)}>{p==='Tùy chọn'&&<Icon name="calendar" size={13}/>} {p}</button>)}</div>{period==='Tùy chọn'&&<div className="report-custom-dates"><input type="date" defaultValue="2025-05-01"/><span>đến</span><input type="date" defaultValue="2025-06-24"/><Button>Áp dụng</Button></div>}</section>
         {group==='revenue'&&<RevenueReport factor={factor} period={period} onDetail={setDetail}/>}
         {group==='profit'&&<ProfitReport factor={factor} query={query} setQuery={setQuery} onDetail={setDetail}/>}
