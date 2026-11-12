@@ -13,11 +13,11 @@ export const demoUsers:DemoAccount[]=[
 const common=['Tổng quan','Thông báo']
 export const roleMenus:Record<RoleKey,string[]>={
   admin:['Tổng quan','Quản lý thuốc','Danh mục thuốc','Nhà cung cấp','Khách hàng','Nhân viên','Bán hàng','Hóa đơn','Quản lý kho','Nhập hàng','Xuất hàng','Kiểm kê kho','Khuyến mãi','Báo cáo – Thống kê','Quản lý tài khoản','Nhật ký hoạt động','Chatbot tư vấn thuốc','Chat bác sĩ','Thông báo','Cài đặt hệ thống','Tài liệu bàn giao'],
-  manager:['Tổng quan','Quản lý thuốc','Danh mục thuốc','Nhà cung cấp','Khách hàng','Nhân viên','Bán hàng','Hóa đơn','Quản lý kho','Nhập hàng','Xuất hàng','Kiểm kê kho','Khuyến mãi','Báo cáo – Thống kê','Quản lý tài khoản','Nhật ký hoạt động','Thông báo','Cài đặt hệ thống'],
+  manager:['Tổng quan','Quản lý thuốc','Danh mục thuốc','Nhà cung cấp','Khách hàng','Nhân viên','Bán hàng','Hóa đơn','Quản lý kho','Nhập hàng','Xuất hàng','Kiểm kê kho','Khuyến mãi','Báo cáo – Thống kê','Quản lý tài khoản','Nhật ký hoạt động','Chatbot tư vấn thuốc','Chat bác sĩ','Thông báo','Cài đặt hệ thống'],
   pharmacist:[...common,'Quản lý thuốc','Danh mục thuốc','Khách hàng','Bán hàng','Hóa đơn','Chatbot tư vấn thuốc','Chat bác sĩ'],
-  cashier:[...common,'Khách hàng','Bán hàng','Hóa đơn','Khuyến mãi'],
-  warehouse:[...common,'Quản lý thuốc','Danh mục thuốc','Nhà cung cấp','Quản lý kho','Nhập hàng','Xuất hàng','Kiểm kê kho'],
-  doctor:[...common,'Chat bác sĩ'],
+  cashier:[...common,'Khách hàng','Bán hàng','Hóa đơn','Khuyến mãi','Chatbot tư vấn thuốc','Chat bác sĩ'],
+  warehouse:[...common,'Quản lý thuốc','Danh mục thuốc','Nhà cung cấp','Quản lý kho','Nhập hàng','Xuất hàng','Kiểm kê kho','Chatbot tư vấn thuốc','Chat bác sĩ'],
+  doctor:[...common,'Chatbot tư vấn thuốc','Chat bác sĩ'],
   customer:['Cửa hàng thuốc','Giỏ hàng','Đơn hàng & Hóa đơn',...common,'Chatbot tư vấn thuốc','Chat bác sĩ'],
 }
 export const roleHome:Record<RoleKey,string>={admin:'Tổng quan',manager:'Tổng quan',pharmacist:'Tổng quan',cashier:'Tổng quan',warehouse:'Tổng quan',doctor:'Tổng quan',customer:'Cửa hàng thuốc'}

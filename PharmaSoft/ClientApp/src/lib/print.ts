@@ -353,7 +353,117 @@ export function buildInvoiceHtml(invoice: {
         Cảm ơn quý khách đã tin tưởng sử dụng dịch vụ của chúng tôi!<br>
         PHARMASOFT • Hệ thống quản lý nhà thuốc chuyên nghiệp
       </div>
+    </div>`
+}
+
+/** In sao kê / Báo cáo tài chính, tồn kho, kinh doanh theo chuẩn A4 */
+export function printReportStatement(report: {
+  title: string
+  subtitle: string
+  period: string
+  kpis?: Array<{ label: string; value: string; change?: string }>
+  headers: string[]
+  rows: string[][]
+}): void {
+  const kpiHtml = report.kpis && report.kpis.length > 0 ? `
+    <div style="display:grid;grid-template-columns:repeat(${Math.min(report.kpis.length, 4)}, 1fr);gap:12px;margin-bottom:18px">
+      ${report.kpis.map(k => `
+        <div style="background:#f8faf9;border:1px solid #dce4df;border-radius:6px;padding:10px 12px">
+          <small style="font-size:10px;color:#708076;text-transform:uppercase;font-weight:700;display:block">${k.label}</small>
+          <strong style="font-size:15px;color:#18241e;display:block;margin:4px 0">${k.value}</strong>
+          ${k.change ? `<span style="font-size:10px;color:#16834a">${k.change}</span>` : ''}
+        </div>
+      `).join('')}
     </div>
-  `
+  ` : ''
+
+  const rowsHtml = report.rows.map((row, idx) => `
+    <tr style="${idx % 2 === 1 ? 'background:#fafcfb;' : ''}">
+      <td style="border:1px solid #dfe5e1;padding:8px 10px;text-align:center;width:40px">${idx + 1}</td>
+      ${row.map((cell, cIdx) => `
+        <td style="border:1px solid #dfe5e1;padding:8px 10px;font-size:11px;${cIdx === 0 ? 'font-weight:600;' : ''}${cIdx >= 2 ? 'text-align:right;' : ''}">
+          ${cell}
+        </td>
+      `).join('')}
+    </tr>
+  `).join('')
+
+  const fullHtml = `<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <title>${report.title} — PHARMASOFT</title>
+  <style>
+    @page { size: A4 portrait; margin: 15mm 12mm; }
+    * { box-sizing: border-box; }
+    body { font-family: 'Be Vietnam Pro', Arial, sans-serif; color: #18241e; margin: 0; padding: 0; font-size: 12px; line-height: 1.5; background: #fff; }
+    .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #16834a; padding-bottom: 12px; margin-bottom: 16px; }
+    .brand h1 { margin: 0; font-size: 18px; color: #16834a; }
+    .brand p { margin: 2px 0 0; color: #666; font-size: 10px; }
+    .meta { text-align: right; }
+    .meta h2 { margin: 0; font-size: 16px; color: #16834a; }
+    .meta p { margin: 2px 0 0; color: #666; font-size: 10px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; margin-bottom: 20px; }
+    th { background: #e8f5ed; color: #16834a; font-weight: 700; font-size: 11px; text-transform: uppercase; padding: 9px 8px; border: 1px solid #cce3d4; }
+    .signatures { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; text-align: center; margin-top: 35px; page-break-inside: avoid; }
+    .sig-block { min-height: 90px; }
+    .sig-block strong { display: block; font-size: 12px; margin-bottom: 4px; }
+    .sig-block small { font-size: 10px; color: #888; font-style: italic; }
+    .footer-note { text-align: center; margin-top: 30px; font-size: 9px; color: #888; border-top: 1px dashed #ccc; padding-top: 8px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="brand">
+      <h1>🏥 NHÀ THUỐC PHARMASOFT</h1>
+      <p>128 Nguyễn Thị Minh Khai, P.6, Q.3, TP.HCM • Hotline: 1900 6868</p>
+    </div>
+    <div class="meta">
+      <h2>${report.title.toUpperCase()}</h2>
+      <p>Kỳ báo cáo: <strong>${report.period}</strong></p>
+      <p>Trích xuất lúc: ${new Date().toLocaleString('vi-VN')}</p>
+    </div>
+  </div>
+
+  <div style="background:#f4f9f6;border-left:4px solid #16834a;padding:8px 12px;margin-bottom:14px;font-size:11px">
+    <strong>Ghi chú:</strong> ${report.subtitle}. Báo cáo số liệu chính thức phục vụ quản trị và sao kê nhà thuốc.
+  </div>
+
+  ${kpiHtml}
+
+  <table>
+    <thead>
+      <tr>
+        <th style="width:40px">STT</th>
+        ${report.headers.map(h => `<th>${h}</th>`).join('')}
+      </tr>
+    </thead>
+    <tbody>
+      ${rowsHtml}
+    </tbody>
+  </table>
+
+  <div class="signatures">
+    <div class="sig-block">
+      <strong>Người lập báo cáo</strong>
+      <small>(Ký và ghi rõ họ tên)</small>
+    </div>
+    <div class="sig-block">
+      <strong>Kế toán trưởng</strong>
+      <small>(Ký và ghi rõ họ tên)</small>
+    </div>
+    <div class="sig-block">
+      <strong>Giám đốc nhà thuốc</strong>
+      <small>(Ký, đóng dấu)</small>
+    </div>
+  </div>
+
+  <div class="footer-note">
+    PHARMASOFT — Hệ thống Quản trị & Bán lẻ Dược phẩm • Bản in sao kê chính thức
+  </div>
+</body>
+</html>`
+
+  printHtmlDirect(fullHtml)
 }
 
