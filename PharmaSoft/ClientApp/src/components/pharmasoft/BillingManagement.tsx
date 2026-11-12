@@ -1,5 +1,5 @@
 import { usePersistentState } from '@/lib/persist'
-import { FormEvent, useMemo, useState } from 'react'
+import { FormEvent, useEffect, useMemo, useState } from 'react'
 import { Badge, Button, Icon } from './App'
 import { DemoOrder, useDemoCommerce } from './DemoCommerce'
 import { EmailSender } from './EmailSender'
@@ -35,7 +35,7 @@ const money=(v:number)=>`${Math.round(v).toLocaleString('vi-VN')} VNĐ`
 const invoiceTotal=(invoice:Invoice)=>invoice.items.reduce((sum,item)=>sum+item.quantity*item.price*(1-item.discount/100),0)
 const statusKind=(status:string)=>status.includes('Đã thanh toán')||status==='Đang hoạt động'||status==='Đã duyệt'?'ok':status.includes('hủy')||status.includes('từ chối')?'danger':'warning'
 
-export function BillingManagement({initialTab}:{initialTab:Tab}){
+export function BillingManagement({initialTab,initialRecord}:{initialTab:Tab;initialRecord?:string}){
   const commerce=useDemoCommerce()
   const [tab,setTab]=useState<Tab>(initialTab)
   const [invoices,setInvoices]=usePersistentState('invoices',initialInvoices)
@@ -65,6 +65,16 @@ export function BillingManagement({initialTab}:{initialTab:Tab}){
   const filteredInvoices=useMemo(()=>allInvoices.filter(i=>(i.id.toLowerCase().includes(query.toLowerCase())||i.customer.toLowerCase().includes(query.toLowerCase()))&&(status==='Tất cả trạng thái'||i.status===status)&&(employee==='Tất cả nhân viên'||i.employee===employee)&&i.customer.toLowerCase().includes(customer.toLowerCase())),[allInvoices,query,status,employee,customer])
   const filteredPromotions=promotions.filter(p=>(p.code.toLowerCase().includes(query.toLowerCase())||p.name.toLowerCase().includes(query.toLowerCase()))&&(status==='Tất cả trạng thái'||p.status===status))
   const filteredReturns=returns.filter(r=>(r.id.toLowerCase().includes(query.toLowerCase())||r.invoiceId.toLowerCase().includes(query.toLowerCase())||r.customer.toLowerCase().includes(query.toLowerCase()))&&(status==='Tất cả trạng thái'||r.status===status))
+  useEffect(()=>{
+    if(!initialRecord)return
+    if(tab==='invoices'){
+      const invoice=allInvoices.find(item=>item.id.toLowerCase()===initialRecord.toLowerCase()||item.order?.id.toLowerCase()===initialRecord.toLowerCase())
+      if(invoice){setSelectedInvoice(invoice);setDialog('invoice-detail')}
+    }else if(tab==='promotions'){
+      const promotion=promotions.find(item=>item.code.toLowerCase()===initialRecord.toLowerCase())
+      if(promotion){setSelectedPromotion(promotion);setDialog('promotion-detail')}
+    }
+  },[initialRecord,tab,allInvoices,promotions])
   function savePromotion(e:FormEvent<HTMLFormElement>){e.preventDefault();const d=new FormData(e.currentTarget),get=(k:string)=>String(d.get(k)||''),type=get('type');const rawValue=Number(get('value')),value=type==='Theo phần trăm'?Math.min(100,rawValue):rawValue,maximum=Number(get('maximum'));const toDate=(value:string)=>{const [day,month,year]=value.split('/');return `${year}-${month}-${day}`},today='2025-06-24',dateStatus=toDate(get('end'))<today?'Đã kết thúc':toDate(get('start'))>today?'Tạm dừng':get('status');const item:Promotion={code:get('code').toUpperCase(),name:get('name'),start:get('start'),end:get('end'),type,value,minimum:Number(get('minimum')),maximum:type==='Theo phần trăm'?maximum:value,applies:get('applies'),limit:Number(get('limit')),used:selectedPromotion?.used||0,status:dateStatus};setPromotions(editing&&selectedPromotion?promotions.map(p=>p.code===selectedPromotion.code?item:p):[item,...promotions]);setDialog(null);notify(editing?'Đã cập nhật chương trình khuyến mãi':'Đã tạo chương trình khuyến mãi')}
   function saveReturn(e:FormEvent<HTMLFormElement>){e.preventDefault();const d=new FormData(e.currentTarget),invoice=allInvoices.find(i=>i.id===String(d.get('invoice'))),item=invoice?.items.find(x=>x.id===String(d.get('medicine'))),qty=Number(d.get('quantity'));if(!invoice||!item)return;if(qty>item.quantity-item.returned){notify(`Chỉ có thể trả tối đa ${item.quantity-item.returned} ${item.unit}`);return}const refund=item.price*qty*(1-item.discount/100);setReturns([{id:`TH-250624-${String(returns.length+13).padStart(4,'0')}`,invoiceId:invoice.id,date:'24/06/2025',customer:invoice.customer,employee:'Nguyễn Minh Tuấn',medicine:item.name,quantity:qty,reason:String(d.get('reason')),refund,status:'Chờ duyệt'},...returns]);setDialog(null);notify('Đã tạo phiếu trả hàng chờ duyệt')}
   function cancelInvoice(){if(selectedInvoice?.order)commerce.cancelOrder(selectedInvoice.order.id,'Nhân viên quản lý hủy hóa đơn');else if(selectedInvoice)setInvoices(invoices.map(i=>i.id===selectedInvoice.id?{...i,status:'Đã hủy'}:i));setDialog(null);notify('Đã hủy hóa đơn, doanh thu không còn được ghi nhận')}

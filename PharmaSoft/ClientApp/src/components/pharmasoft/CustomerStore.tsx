@@ -1,6 +1,6 @@
 'use client'
 
-import { FormEvent, useMemo, useState } from 'react'
+import { FormEvent, useEffect, useMemo, useState } from 'react'
 import { Badge, Button, Icon } from './App'
 import { DemoOrder, DemoProduct, useDemoCommerce } from './DemoCommerce'
 import { SessionUser } from './roles'
@@ -9,7 +9,7 @@ import { printOrderInvoice } from '@/lib/print'
 type StoreView='store'|'cart'|'orders'
 const money=(value:number)=>`${Math.round(value).toLocaleString('vi-VN')} VNĐ`
 
-export function CustomerStore({user,initialView}:{user:SessionUser;initialView:StoreView}){
+export function CustomerStore({user,initialView,initialOrderId,initialProductId}:{user:SessionUser;initialView:StoreView;initialOrderId?:string;initialProductId?:string}){
   const commerce=useDemoCommerce(),[view,setView]=useState<StoreView>(initialView),[query,setQuery]=useState(''),[category,setCategory]=useState('Tất cả'),[brand,setBrand]=useState('Tất cả'),[availability,setAvailability]=useState('Tất cả'),[price,setPrice]=useState('Tất cả'),[selected,setSelected]=useState<DemoProduct|null>(null),[checkout,setCheckout]=useState(false),[result,setResult]=useState<DemoOrder|null>(null),[toast,setToast]=useState(''),[orderQuery,setOrderQuery]=useState(''),[orderStatus,setOrderStatus]=useState('Tất cả'),[invoice,setInvoice]=useState<DemoOrder|null>(null)
   const listed=commerce.products.filter(product=>product.listed)
   const categories=['Tất cả',...new Set(listed.map(product=>product.category))],brands=['Tất cả',...new Set(listed.map(product=>product.manufacturer))]
@@ -25,6 +25,20 @@ export function CustomerStore({user,initialView}:{user:SessionUser;initialView:S
       return matchesQuery&&matchesStatus
     })
   },[commerce.orders,user,orderQuery,orderStatus])
+  useEffect(()=>{
+    if(!initialOrderId)return
+    const order=commerce.orders.find(item=>item.id.toLowerCase()===initialOrderId.toLowerCase()||item.invoiceId.toLowerCase()===initialOrderId.toLowerCase())
+    setView('orders')
+    if(order)setInvoice(order)
+    else setOrderQuery(initialOrderId)
+  },[initialOrderId,commerce.orders])
+  useEffect(()=>{
+    if(!initialProductId)return
+    setView('store')
+    const target=initialProductId.toLowerCase()
+    const product=commerce.products.find(item=>item.id.toLowerCase()===target||target.includes(item.name.toLowerCase()))||commerce.products.find(item=>target.includes('vitamin')&&item.category==='Vitamin & khoáng chất'&&item.discount)||commerce.products.find(item=>item.discount&&item.listed)
+    if(product)setSelected(product)
+  },[initialProductId,commerce.products])
   function notify(message:string){setToast(message);window.setTimeout(()=>setToast(''),2600)}
   function add(product:DemoProduct){const response=commerce.addToCart(product.id);notify(response.message)}
   function submitOrder(event:FormEvent<HTMLFormElement>){

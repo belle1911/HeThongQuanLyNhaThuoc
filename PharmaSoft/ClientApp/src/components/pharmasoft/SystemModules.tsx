@@ -1,4 +1,4 @@
-import { usePersistentState } from '@/lib/persist'
+import { persistCollection, usePersistentState } from '@/lib/persist'
 import { FormEvent, useEffect, useMemo, useState } from 'react'
 import { Badge, Button, Icon, IconName } from './App'
 
@@ -14,25 +14,77 @@ const initialNotices:Notice[]=[
   {id:8,type:'Khách hàng mới',title:'Khách hàng Nguyễn Thị Hồng đã đăng ký',description:'Mã KH-008642 • Hạng thành viên cơ bản.',time:'Hôm qua',date:'23/06/2025, 16:42',read:true,icon:'customers',tone:'indigo',record:'KH-008642',detail:'Hồ sơ khách hàng mới được tạo tại quầy bán hàng và đã đồng ý tham gia chương trình thành viên.'},
   {id:9,type:'Cảnh báo hệ thống',title:'Sao lưu dữ liệu hoàn tất',description:'Bản sao lưu tự động ngày 24/06/2025 đã được tạo.',time:'Hôm qua',date:'23/06/2025, 03:00',read:true,icon:'shield',tone:'gray',record:'Backup-20250624',detail:'Tác vụ sao lưu mô phỏng đã hoàn tất. Không có lỗi được ghi nhận.'},
 ]
-const noticeTypes=['Tất cả loại','Thuốc sắp hết hàng','Thuốc sắp hết hạn','Thuốc đã hết hạn','Hóa đơn mới','Thanh toán hoàn tất','Phiếu nhập mới','Phiếu xuất kho','Khách hàng mới','Cảnh báo hệ thống']
-export function NotificationCenter({onUnreadChange,onNavigate}:{onUnreadChange:(count:number)=>void;onNavigate:(route:string)=>void}){
+const noticeTypes=['Tất cả loại','Đơn hàng được xác nhận','Đơn hàng đang giao','Đơn hàng mới','Hóa đơn mới','Thanh toán hoàn tất','Khuyến mãi','Thuốc sắp hết hàng','Thuốc sắp hết hạn','Thuốc đã hết hạn','Phiếu nhập mới','Phiếu xuất kho','Khách hàng mới','Cảnh báo hệ thống']
+export function NotificationCenter({onUnreadChange,onNavigate}:{onUnreadChange:(count:number)=>void;onNavigate:(route:string,target?:string)=>void}){
   const [notices,setNotices]=usePersistentState('notices',initialNotices)
   const [view,setView]=useState<'all'|'unread'|'read'>('all')
   const [type,setType]=useState('Tất cả loại')
   const [query,setQuery]=useState('')
-  const [selected,setSelected]=useState<Notice|null>(null)
   const [deleteTarget,setDeleteTarget]=useState<Notice|null>(null)
   const [toast,setToast]=useState('')
   const unread=notices.filter(n=>!n.read).length
   useEffect(()=>onUnreadChange(unread),[unread,onUnreadChange])
   const filtered=useMemo(()=>notices.filter(n=>(view==='all'||(view==='unread'?!n.read:n.read))&&(type==='Tất cả loại'||n.type===type)&&(n.title.toLowerCase().includes(query.toLowerCase())||n.description.toLowerCase().includes(query.toLowerCase()))),[notices,view,type,query])
-  function markRead(id:number){setNotices(notices.map(n=>n.id===id?{...n,read:true}:n))}
-  function openDetail(notice:Notice){markRead(notice.id);setSelected({...notice,read:true})}
+  function markRead(id:number){
+    const updated=notices.map(n=>n.id===id?{...n,read:true}:n)
+    if(notices.some(n=>n.id===id&&!n.read))onUnreadChange(Math.max(0,unread-1))
+    setNotices(updated)
+    persistCollection('notices',updated)
+  }
+  function openNotice(notice:Notice){
+    markRead(notice.id)
+    const text=`${notice.title} ${notice.description} ${notice.record}`
+    const orderId=text.match(/\bDH[A-Z0-9-]+\b/i)?.[0]
+    const invoiceId=text.match(/\bHD[A-Z0-9-]+\b/i)?.[0]
+    if(notice.type.includes('Đơn hàng')||text.toLowerCase().includes('đơn hàng')){
+      onNavigate('Đơn hàng & Hóa đơn',orderId||invoiceId||'')
+    }else if(notice.type.includes('Hóa đơn')||notice.type.includes('Thanh toán')){
+      onNavigate('Hóa đơn',invoiceId||'')
+    }else if(notice.type.includes('Khuyến mãi')){
+      const code=text.match(/\b(?:HEALTH10|VITAMIN20|GIAM50|KHACHMOI|TET2025)\b/i)?.[0]||''
+      onNavigate('Khuyến mãi',code)
+    }else if(notice.type.includes('Thuốc')){
+      onNavigate('Quản lý kho',notice.description)
+    }else if(notice.type.includes('nhập')){
+      onNavigate('Nhập hàng')
+    }else if(notice.type.includes('xuất')){
+      onNavigate('Xuất hàng')
+    }else if(notice.type.includes('Khách')){
+      onNavigate('Khách hàng')
+    }else{
+      onNavigate('Cài đặt hệ thống')
+    }
+  }
   function notify(text:string){setToast(text);window.setTimeout(()=>setToast(''),2800)}
   return <div className="notification-module">
     <div className="notice-summary"><div className="card"><span className="notice-stat green"><Icon name="bell"/></span><div><small>Tổng thông báo</small><strong>{notices.length}</strong><em>Trong 7 ngày gần nhất</em></div></div><div className="card"><span className="notice-stat red"><Icon name="help"/></span><div><small>Chưa đọc</small><strong>{unread}</strong><em>Cần kiểm tra</em></div></div><div className="card"><span className="notice-stat blue"><Icon name="check"/></span><div><small>Đã đọc</small><strong>{notices.length-unread}</strong><em>Đã xem nội dung</em></div></div></div>
-    <section className="card notice-center-card"><div className="notice-center-heading"><div><h2>Trung tâm thông báo</h2><p>Theo dõi cảnh báo kho, giao dịch và hoạt động hệ thống.</p></div><Button variant="secondary" icon="check" onClick={()=>{setNotices(notices.map(n=>({...n,read:true})));notify('Đã đánh dấu tất cả là đã đọc')}}>Đánh dấu tất cả đã đọc</Button></div><div className="notice-toolbar"><div className="notice-view-tabs"><button className={view==='all'?'active':''} onClick={()=>setView('all')}>Tất cả <span>{notices.length}</span></button><button className={view==='unread'?'active':''} onClick={()=>setView('unread')}>Chưa đọc <span>{unread}</span></button><button className={view==='read'?'active':''} onClick={()=>setView('read')}>Đã đọc</button></div><div className="table-search"><Icon name="search" size={15}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Tìm trong thông báo..."/></div><select value={type} onChange={e=>setType(e.target.value)}>{noticeTypes.map(x=><option key={x}>{x}</option>)}</select></div><div className="notice-list">{filtered.map(notice=><article className={!notice.read?'unread':''} key={notice.id} onClick={()=>openDetail(notice)}><span className={`notice-type-icon ${notice.tone}`}><Icon name={notice.icon}/></span><div><div><strong>{notice.title}</strong>{!notice.read&&<i/>}</div><p>{notice.description}</p><small><span>{notice.type}</span> • {notice.time}</small></div><div className="notice-actions">{!notice.read&&<button title="Đánh dấu đã đọc" onClick={e=>{e.stopPropagation();markRead(notice.id)}}><Icon name="check"/></button>}<button title="Xóa thông báo" className="delete" onClick={e=>{e.stopPropagation();setDeleteTarget(notice)}}><Icon name="close"/></button><Icon name="chevron"/></div></article>)}{filtered.length===0&&<div className="empty-state"><div><Icon name="bell"/></div><strong>Không có thông báo</strong><span>Không tìm thấy thông báo phù hợp với bộ lọc.</span></div>}</div></section>
-    {selected&&<div className="dialog-layer"><section className="dialog notice-detail-dialog"><div className="dialog__header"><div><div className="eyebrow">{selected.type.toUpperCase()}</div><h2>{selected.title}</h2><p>{selected.date}</p></div><button className="icon-button" onClick={()=>setSelected(null)}><Icon name="close"/></button></div><div className="notice-detail-body"><span className={`notice-type-icon large ${selected.tone}`}><Icon name={selected.icon}/></span><p>{selected.detail}</p><div><small>BẢN GHI LIÊN QUAN</small><strong>{selected.record}</strong><button onClick={()=>{onNavigate(selected.type.includes('Thuốc')?'Quản lý kho':selected.type.includes('Hóa đơn')||selected.type.includes('Thanh toán')?'Hóa đơn':selected.type.includes('nhập')?'Nhập hàng':selected.type.includes('xuất')?'Xuất hàng':selected.type.includes('Khách')?'Khách hàng':'Cài đặt hệ thống');setSelected(null)}}>Xem bản ghi <Icon name="chevron"/></button></div></div><div className="dialog__footer report-footer"><Button onClick={()=>setSelected(null)}>Đã hiểu</Button></div></section></div>}
+    <section className="card notice-center-card">
+      <div className="notice-center-heading">
+        <div><h2>Trung tâm thông báo</h2><p>Theo dõi cảnh báo kho, giao dịch và hoạt động hệ thống.</p></div>
+        <Button variant="secondary" icon="check" onClick={()=>{setNotices(current=>current.map(n=>({...n,read:true})));notify('Đã đánh dấu tất cả là đã đọc')}}>Đánh dấu tất cả đã đọc</Button>
+      </div>
+      <div className="notice-toolbar">
+        <div className="notice-view-tabs">
+          <button className={view==='all'?'active':''} onClick={()=>setView('all')}>Tất cả <span>{notices.length}</span></button>
+          <button className={view==='unread'?'active':''} onClick={()=>setView('unread')}>Chưa đọc <span>{unread}</span></button>
+          <button className={view==='read'?'active':''} onClick={()=>setView('read')}>Đã đọc</button>
+        </div>
+        <div className="table-search"><Icon name="search" size={15}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Tìm trong thông báo..."/></div>
+        <select value={type} onChange={e=>setType(e.target.value)}>{noticeTypes.map(x=><option key={x}>{x}</option>)}</select>
+      </div>
+      <div className="notice-list">
+        {filtered.map(notice=><article className={!notice.read?'unread':''} key={notice.id} onClick={()=>openNotice(notice)}>
+          <span className={`notice-type-icon ${notice.tone}`}><Icon name={notice.icon}/></span>
+          <div><div><strong>{notice.title}</strong>{!notice.read&&<i/>}</div><p>{notice.description}</p><small><span>{notice.type}</span> • {notice.time}</small></div>
+          <div className="notice-actions">
+            {!notice.read&&<button title="Đánh dấu đã đọc" onClick={e=>{e.stopPropagation();markRead(notice.id)}}><Icon name="check"/></button>}
+            <button title="Xóa thông báo" className="delete" onClick={e=>{e.stopPropagation();setDeleteTarget(notice)}}><Icon name="close"/></button>
+            <Icon name="chevron"/>
+          </div>
+        </article>)}
+        {filtered.length===0&&<div className="empty-state"><div><Icon name="bell"/></div><strong>Không có thông báo</strong><span>Không tìm thấy thông báo phù hợp với bộ lọc.</span></div>}
+      </div>
+    </section>
     {deleteTarget&&<div className="dialog-layer"><section className="confirm-dialog"><span className="confirm-icon red"><Icon name="close"/></span><h2>Xóa thông báo?</h2><p>Thông báo “{deleteTarget.title}” sẽ bị xóa khỏi trung tâm thông báo.</p><div><Button variant="secondary" onClick={()=>setDeleteTarget(null)}>Hủy bỏ</Button><button className="danger-button" onClick={()=>{setNotices(notices.filter(n=>n.id!==deleteTarget.id));setDeleteTarget(null);notify('Đã xóa thông báo')}}>Xác nhận xóa</button></div></section></div>}
     {toast&&<div className="toast"><span><Icon name="check"/></span><div><strong>{toast}</strong><small>Trung tâm thông báo đã được cập nhật.</small></div><button onClick={()=>setToast('')}><Icon name="close"/></button></div>}
   </div>

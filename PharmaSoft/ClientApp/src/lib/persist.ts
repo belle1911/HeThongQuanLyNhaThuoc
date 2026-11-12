@@ -41,6 +41,11 @@ function push(collection: string, value: unknown) {
   }, 500))
 }
 
+export function persistCollection(collection: string, value: unknown) {
+  cache[collection] = value
+  push(collection, value)
+}
+
 export async function bootstrap(): Promise<void> {
   const original = Storage.prototype.setItem
   rawSetItem = (k, v) => original.call(localStorage, k, v)
@@ -89,11 +94,10 @@ export function usePersistentState<T>(collection: string, initial: T): [T, Dispa
   useEffect(() => {
     if (first.current) {
       first.current = false
-      if (!(collection in cache)) { cache[collection] = value; push(collection, value) }   // lần đầu: nạp dữ liệu mẫu lên server
+      if (!(collection in cache)) persistCollection(collection, value)   // lần đầu: nạp dữ liệu mẫu lên server
       return
     }
-    cache[collection] = value
-    push(collection, value)
+    persistCollection(collection, value)
   }, [value, collection])
   return [value, setValue]
 }
