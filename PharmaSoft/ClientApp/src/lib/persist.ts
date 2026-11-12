@@ -54,8 +54,20 @@ export async function bootstrap(): Promise<void> {
   } catch { /* chạy không có server */ }
 
   for (const [key, collection] of Object.entries(SYNCED_LOCALSTORAGE)) {
-    if (collection in cache) rawSetItem(key, JSON.stringify(cache[collection]))      // server là nguồn đúng
-    else {
+    if (collection in cache) {
+      if (collection === 'commerce') {
+        try {
+          const local = JSON.parse(localStorage.getItem(key) || 'null')
+          const serverData = cache[collection] as { orders?: unknown[]; products?: unknown[]; cart?: unknown[] }
+          if (local && Array.isArray(local.orders) && Array.isArray(serverData?.orders)) {
+            const serverOrderIds = new Set(serverData.orders.map((o: any) => o.id))
+            const missing = local.orders.filter((o: any) => !serverOrderIds.has(o.id))
+            serverData.orders = [...missing, ...serverData.orders]
+          }
+        } catch {}
+      }
+      rawSetItem(key, JSON.stringify(cache[collection]))      // server là nguồn đúng
+    } else {
       const local = localStorage.getItem(key)
       if (local) { try { cache[collection] = JSON.parse(local); push(collection, cache[collection]) } catch { /* bỏ qua */ } }
     }

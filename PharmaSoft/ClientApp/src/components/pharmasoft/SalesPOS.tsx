@@ -2,6 +2,7 @@ import { usePersistentState } from '@/lib/persist'
 import { FormEvent, useMemo, useRef, useState } from 'react'
 import { Badge, Button, Icon } from './App'
 import { printElement } from '@/lib/print'
+import { DemoOrder, useDemoCommerce } from './DemoCommerce'
 
 type Product = { id: string; name: string; category: string; unit: string; price: number; stock: number; expiry: string; color: string; barcode: string; expired?: boolean }
 type CartItem = Product & { quantity: number; discount: number }
@@ -31,6 +32,7 @@ const categories = ['Tất cả', 'Giảm đau – Hạ sốt', 'Kháng sinh', '
 const money = (value: number) => `${Math.round(value).toLocaleString('vi-VN')} VNĐ`
 
 export function SalesPOS() {
+  const commerce = useDemoCommerce()
   const [products, setProducts] = usePersistentState('pos-products', initialProducts)
   const [cart, setCart] = useState<CartItem[]>([])
   const [query, setQuery] = useState('')
@@ -89,8 +91,48 @@ export function SalesPOS() {
     setDialog('confirm')
   }
   function completePayment() {
+    const stamp = Date.now()
+    const genInvoiceNo = `HD${new Date().toISOString().slice(2, 10).replaceAll('-', '')}-${String(187 + Math.floor(Math.random() * 10)).padStart(4, '0')}`
+    const orderId = `DH${String(stamp).slice(-8)}`
+    const nowStr = new Date().toLocaleString('vi-VN')
+
     setProducts(products.map(p => { const item = cart.find(c => c.id === p.id); return item ? { ...p, stock: p.stock - item.quantity } : p }))
-    setInvoiceNo(`HD${new Date().toISOString().slice(2, 10).replaceAll('-', '')}-${String(187 + Math.floor(Math.random() * 10)).padStart(4, '0')}`)
+    setInvoiceNo(genInvoiceNo)
+
+    const posOrder: DemoOrder = {
+      id: orderId,
+      invoiceId: genInvoiceNo,
+      customerId: customer?.id || 'KL-WALKIN',
+      customerName: customer?.name || 'Khách lẻ',
+      phone: customer?.phone || '—',
+      address: 'Mua trực tiếp tại Nhà thuốc PHARMASOFT',
+      note: `Bán tại quầy POS • ${payment}`,
+      createdAt: nowStr,
+      items: cart.map(item => ({
+        productId: item.id,
+        name: item.name,
+        unit: item.unit,
+        quantity: item.quantity,
+        unitPrice: item.price,
+        discount: item.discount,
+        lineTotal: Math.round(item.price * item.quantity * (1 - item.discount / 100))
+      })),
+      subtotal: beforeDiscount,
+      promotionCode: promotion?.code || '',
+      discount: itemDiscount + promoAmount,
+      shippingFee: 0,
+      surcharge: 0,
+      total: total,
+      paymentMethod: payment === 'Tiền mặt' ? 'Tiền mặt' : payment === 'Chuyển khoản' ? 'Chuyển khoản' : 'Thanh toán QR',
+      paymentStatus: 'Đã thanh toán',
+      orderStatus: 'Hoàn tất',
+      transactionId: `GD${String(stamp).slice(-10)}`,
+      timeline: [
+        { time: nowStr, label: 'Thanh toán thành công tại quầy POS', actor: 'Trần Thu Hà' },
+        { time: nowStr, label: 'Đã xuất hóa đơn và trừ tồn kho', actor: 'Hệ thống PHARMASOFT' }
+      ]
+    }
+    commerce.addOrder(posOrder)
     setDialog('success')
   }
   function newOrder() { setCart([]); setCustomer(null); setPayment('Tiền mặt'); setPaid(''); setPromotion(null); setPromoCode(''); setDialog(null) }

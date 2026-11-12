@@ -54,7 +54,13 @@ export function BillingManagement({initialTab}:{initialTab:Tab}){
   const [editing,setEditing]=useState(false)
   const [toast,setToast]=useState('')
   const notify=(text:string)=>{setToast(text);window.setTimeout(()=>setToast(''),3000)}
-  const sharedInvoices=useMemo<Invoice[]>(()=>commerce.orders.map(order=>({id:order.invoiceId,date:order.createdAt.split(',')[0],time:order.createdAt.split(',')[1]?.trim()||'',customer:order.customerName,phone:order.phone,employee:'Đơn hàng trực tuyến',payment:order.paymentMethod,status:order.paymentStatus,items:order.items.map(item=>({id:item.productId,name:item.name,unit:item.unit,quantity:item.quantity,price:item.unitPrice,discount:item.discount,returned:0})),order})),[commerce.orders])
+  const sharedInvoices=useMemo<Invoice[]>(()=>commerce.orders.map(order=>{
+    const parts=order.createdAt.includes(',')?order.createdAt.split(','):order.createdAt.split(' ')
+    const time=parts.length>1?(parts[0].includes(':')?parts[0]:parts[1]).trim():''
+    const date=parts.length>1?(parts[0].includes('/')?parts[0]:parts[1]).trim():order.createdAt
+    const employee=order.note.includes('POS')||order.address.includes('trực tiếp')?'Trần Thu Hà':'Đơn trực tuyến'
+    return{id:order.invoiceId,date:date||'11/11/2026',time:time||'08:00',customer:order.customerName,phone:order.phone,employee,payment:order.paymentMethod,status:order.paymentStatus,items:order.items.map(item=>({id:item.productId,name:item.name,unit:item.unit,quantity:item.quantity,price:item.unitPrice,discount:item.discount,returned:0})),order}
+  }),[commerce.orders])
   const allInvoices=useMemo(()=>[...sharedInvoices,...invoices.filter(invoice=>!sharedInvoices.some(shared=>shared.id===invoice.id))],[sharedInvoices,invoices])
   const filteredInvoices=useMemo(()=>allInvoices.filter(i=>(i.id.toLowerCase().includes(query.toLowerCase())||i.customer.toLowerCase().includes(query.toLowerCase()))&&(status==='Tất cả trạng thái'||i.status===status)&&(employee==='Tất cả nhân viên'||i.employee===employee)&&i.customer.toLowerCase().includes(customer.toLowerCase())),[allInvoices,query,status,employee,customer])
   const filteredPromotions=promotions.filter(p=>(p.code.toLowerCase().includes(query.toLowerCase())||p.name.toLowerCase().includes(query.toLowerCase()))&&(status==='Tất cả trạng thái'||p.status===status))
