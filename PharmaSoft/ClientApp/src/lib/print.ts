@@ -140,6 +140,7 @@ export function printOrderInvoice(order: {
   items: Array<{
     productId: string
     name: string
+    image?: string
     unit: string
     quantity: number
     unitPrice: number
@@ -174,6 +175,8 @@ export function printOrderInvoice(order: {
     tr:nth-child(even) td { background: #fafcfb; }
     .text-center { text-align: center; }
     .text-right { text-align: right; }
+    .product-photo { width: 38px; height: 38px; object-fit: contain; vertical-align: middle; margin-right: 8px; }
+    .product-photo-fallback { display: inline-grid; width: 38px; height: 38px; place-items: center; vertical-align: middle; margin-right: 8px; border-radius: 5px; background: #e8f5ed; color: #16834a; font-size: 8px; font-weight: 700; }
     .totals { display: flex; justify-content: flex-end; margin-bottom: 20px; }
     .totals-table { width: 340px; }
     .totals-table div { display: flex; justify-content: space-between; padding: 4px 0; font-size: 12px; color: #526159; }
@@ -236,7 +239,7 @@ export function printOrderInvoice(order: {
       ${order.items.map((item, idx) => `
         <tr>
           <td class="text-center">${idx + 1}</td>
-          <td><strong>${item.name}</strong><br><small style="color:#666">${item.productId}</small></td>
+          <td>${item.image ? `<img class="product-photo" src="${item.image}" alt="${item.name}">` : '<span class="product-photo-fallback">THUỐC</span>'}<strong>${item.name}</strong><br><small style="color:#666">${item.productId}</small></td>
           <td class="text-center">${item.unit}</td>
           <td class="text-right">${Math.round(item.unitPrice).toLocaleString('vi-VN')} đ</td>
           <td class="text-center">${item.quantity}</td>
@@ -294,13 +297,13 @@ export function printOrderInvoice(order: {
 export function buildInvoiceHtml(invoice: {
   id: string; date: string; time: string
   customer: string; phone: string; employee: string; payment: string; status: string
-  items: Array<{ name: string; unit: string; price: number; quantity: number; discount: number }>
+  items: Array<{ name: string; image?: string; unit: string; price: number; quantity: number; discount: number }>
 }): string {
   const rows = invoice.items.map((item) => {
     const subtotal = item.price * item.quantity * (1 - item.discount / 100)
     return `
       <tr>
-        <td>${item.name}</td>
+        <td>${item.image ? `<img src="${item.image}" alt="${item.name}" style="width:38px;height:38px;object-fit:contain;vertical-align:middle;margin-right:8px">` : '<span style="display:inline-grid;width:38px;height:38px;place-items:center;vertical-align:middle;margin-right:8px;border-radius:5px;background:#e8f5ed;color:#16834a;font-size:8px;font-weight:700">THUỐC</span>'}${item.name}</td>
         <td style="text-align:center">${item.unit}</td>
         <td style="text-align:right">${item.price.toLocaleString('vi-VN')}</td>
         <td style="text-align:center">${item.quantity}</td>
@@ -466,4 +469,3 @@ export function printReportStatement(report: {
 
   printHtmlDirect(fullHtml)
 }
-

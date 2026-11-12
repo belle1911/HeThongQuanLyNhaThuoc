@@ -4,7 +4,7 @@ import { createContext, ReactNode, useContext, useEffect, useRef, useState } fro
 import { SessionUser } from './roles'
 
 export type DemoProduct={
-  id:string;name:string;barcode:string;ingredient:string;category:string;unit:string;purchase:number;price:number;stock:number;expiry:string;status:string;manufacturer:string;origin:string;form:string;strength:string;minimum:number;description:string;color:string;listed?:boolean;featured?:boolean;newArrival?:boolean;discount?:number;prescription?:boolean
+  id:string;name:string;barcode:string;image?:string;ingredient:string;category:string;unit:string;purchase:number;price:number;stock:number;expiry:string;status:string;manufacturer:string;origin:string;form:string;strength:string;minimum:number;description:string;color:string;listed?:boolean;featured?:boolean;newArrival?:boolean;discount?:number;prescription?:boolean
 }
 export type CartLine={productId:string;quantity:number}
 export type DemoOrder={

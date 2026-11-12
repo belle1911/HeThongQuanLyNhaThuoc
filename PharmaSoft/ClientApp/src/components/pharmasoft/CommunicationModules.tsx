@@ -1,6 +1,7 @@
 import { usePersistentState } from '@/lib/persist'
 import { FormEvent, useEffect, useRef, useState } from 'react'
 import { Badge, Button, Icon } from './App'
+import { ProductImage } from './ProductImage'
 
 type ChatMessage={id:number;sender:'user'|'bot';text:string;time:string;products?:Medicine[];error?:boolean;doctorReferral?:boolean}
 type Medicine={id:string;name:string;category:string;price:string;stock:number;unit:string;expiry:string;ingredient:string;color:string;prescription?:boolean;usage?:string;precautions?:string}
@@ -217,7 +218,7 @@ export function MedicineChatbot({onNavigate}:{onNavigate?:(view:string)=>void}){
             </div>}
             {message.products&&<div className="medicine-chat-results">
               {message.products.map(product=><button className={selected?.id===product.id?'selected':''} key={product.id} onClick={()=>{setSelected(product);setMessages(prev=>[...prev,{id:Date.now(),sender:'bot',text:`Đã chọn ${product.name} (${product.id}).\n• Giá niêm yết: ${product.price}\n• Tồn kho: ${product.stock} ${product.unit}\n• Hạn dùng: ${product.expiry}\n• Phân loại: ${product.prescription?'Thuốc kê đơn (Rx)':'Không kê đơn (OTC)'}\n\nBạn có thể hỏi thêm: "cách dùng thuốc này", "lưu ý tác dụng phụ" hoặc "giá thuốc này bao nhiêu".`,time:now()}])}}>
-                <span className={`medicine-product-image ${product.color}`}><Icon name="package"/></span>
+                <ProductImage className="medicine-product-image" name={product.name} strength={product.category} color={product.color}/>
                 <div>
                   <strong>{product.name}</strong>
                   <small>{product.id} • {product.category} {product.prescription?'• Kê đơn':''}</small>
