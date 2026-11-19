@@ -3,3 +3,4 @@ obj/
 node_modules/
 .env
 PharmaSoft.Web/data/
+pharmasoft-data/

@@ -1,0 +1,9 @@
+**/bin/
+**/obj/
+**/node_modules/
+PharmaSoft.Web/data/
+PharmaSoft.Web/Data/
+pharmasoft-data/
+ClientApp/
+Database/.env
+.git

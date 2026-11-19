@@ -1,0 +1,11 @@
+services:
+  pharmasoft:
+    build: .
+    container_name: pharmasoft
+    restart: always
+    ports:
+      # Chỉ Nginx trên VPS truy cập được, bên ngoài không vào thẳng cổng 5000
+      - "127.0.0.1:5000:8080"
+    volumes:
+      # Giữ dữ liệu (JSON) khi build lại / khởi động lại container
+      - ./pharmasoft-data:/app/data
