@@ -41,6 +41,16 @@ function push(collection: string, value: unknown) {
   }, 500))
 }
 
+/** Thông tin tài khoản đang đăng nhập (lưu khi đăng nhập), hoặc null. */
+export function currentSession(): { id?: string; name?: string; username?: string; initials?: string; roleLabel?: string; email?: string; phone?: string } | null {
+  try { return JSON.parse(localStorage.getItem(SESSION_KEY) || sessionStorage.getItem(SESSION_KEY) || 'null') } catch { return null }
+}
+
+/** Đọc dữ liệu mới nhất của một collection (dùng trong xử lý sự kiện, ngoài React state). */
+export function readCollection<T>(collection: string, fallback: T): T {
+  return collection in cache ? (cache[collection] as T) : fallback
+}
+
 export function persistCollection(collection: string, value: unknown) {
   cache[collection] = value
   push(collection, value)

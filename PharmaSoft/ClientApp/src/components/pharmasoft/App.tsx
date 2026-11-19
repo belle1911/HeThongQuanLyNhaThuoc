@@ -328,7 +328,7 @@ function ManagementApp({ user, onLogout, prototypeMode = false, onRoleChange }: 
 
         <section className="dashboard-grid">
           <div className="card revenue-card">
-            <div className="card__header"><div><h2>Doanh thu bán hàng</h2><p>Cập nhật đến 14:30, 24/06/2025</p></div><select aria-label="Khoảng thời gian" value={period} onChange={event => setPeriod(event.target.value)}><option>7 ngày qua</option><option>30 ngày qua</option><option>Quý này</option></select></div>
+            <div className="card__header"><div><h2>Doanh thu bán hàng</h2><p>Dữ liệu minh họa</p></div><select aria-label="Khoảng thời gian" value={period} onChange={event => setPeriod(event.target.value)}><option>7 ngày qua</option><option>30 ngày qua</option><option>Quý này</option></select></div>
             <div className="chart-summary"><div><span>Tổng doanh thu</span><strong>164.820.000 VNĐ</strong></div><Badge kind="ok">↑ 14,2%</Badge></div>
             <div className="line-chart">
               <div className="chart-y"><span>30tr</span><span>20tr</span><span>10tr</span><span>0</span></div>

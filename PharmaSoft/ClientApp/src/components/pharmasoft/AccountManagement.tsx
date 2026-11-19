@@ -15,7 +15,7 @@ const permissionMap: Record<string, boolean[][]> = {
   'Bác sĩ': [[true,false,false,false,false,false],[true,false,false,false,false,false],[false,false,false,false,false,false],[false,false,false,false,false,false],[true,false,false,false,false,false],[false,false,false,false,false,false]],
   'Khách hàng': [[true,false,false,false,false,false],[true,false,false,false,false,false],[false,false,false,false,false,false],[false,false,false,false,false,false],[true,false,true,false,false,false],[false,false,false,false,false,false]],
 }
-const prototypeAccounts:Account[]=demoUsers.map(user=>({id:user.id,name:user.name,initials:user.initials,email:user.email,phone:user.phone,role:user.roleLabel,status:'Đang hoạt động',lastLogin:'Hôm nay, 14:35'}))
+const prototypeAccounts:Account[]=demoUsers.map(user=>({id:user.id,name:user.name,initials:user.initials,email:user.email,phone:user.phone,role:user.roleLabel,status:'Đang hoạt động',lastLogin:'Chưa ghi nhận'}))
 
 export function AccountManagement({prototypeMode=false}:{prototypeMode?:boolean}) {
   const [accounts, setAccounts] = useState<Account[]>(prototypeMode?prototypeAccounts:[])

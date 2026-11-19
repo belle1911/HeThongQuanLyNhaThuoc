@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Badge, Button, Icon, IconName } from './App'
+import { monthStartISO, todayISO } from '@/lib/today'
 
 type Period = 'Hôm nay' | 'Hôm qua' | '7 ngày qua' | '30 ngày qua' | 'Tháng này' | 'Tùy chọn'
 type Metric = { label: string; value: string; change: string; positive: boolean; icon: IconName; tone: string; report: string }
@@ -74,8 +75,8 @@ export function Dashboard({ onNavigate }: { onNavigate: (route: string) => void 
   return <div className="dashboard-v2">
     <section className="dashboard-filter card">
       <div className="period-tabs">{periods.map(item => <button key={item} className={period === item ? 'active' : ''} onClick={() => setPeriod(item)}>{item === 'Tùy chọn' && <Icon name="calendar" size={14} />}{item}</button>)}</div>
-      {period === 'Tùy chọn' && <div className="custom-dates"><label><span>Từ ngày</span><input type="date" defaultValue="2025-06-01" /></label><span>→</span><label><span>Đến ngày</span><input type="date" defaultValue="2025-06-24" /></label><Button>Áp dụng</Button></div>}
-      <div className="filter-updated"><span className="live-dot" /> Cập nhật lúc 14:30, 24/06/2025</div>
+      {period === 'Tùy chọn' && <div className="custom-dates"><label><span>Từ ngày</span><input type="date" defaultValue={monthStartISO()} /></label><span>→</span><label><span>Đến ngày</span><input type="date" defaultValue={todayISO()} /></label><Button>Áp dụng</Button></div>}
+      <div className="filter-updated"><span className="live-dot" /> Dữ liệu minh họa</div>
     </section>
 
     <section className="dashboard-metrics">{metrics.map(item => <DashboardMetric key={item.label} item={item} onClick={() => setReport(item)} />)}</section>
