@@ -395,9 +395,10 @@ export default function App() {
   useEffect(() => {
     if(!supabaseConfigured){
       try{
-        const stored=localStorage.getItem(DEMO_SESSION_KEY)
+        // Ghi nhớ đăng nhập -> localStorage; không ghi nhớ -> sessionStorage (giữ khi F5, mất khi đóng tab)
+        const stored=localStorage.getItem(DEMO_SESSION_KEY)||sessionStorage.getItem(DEMO_SESSION_KEY)
         if(stored)setSession(JSON.parse(stored))
-      }catch{localStorage.removeItem(DEMO_SESSION_KEY)}
+      }catch{localStorage.removeItem(DEMO_SESSION_KEY);sessionStorage.removeItem(DEMO_SESSION_KEY)}
       setCheckingSession(false);return
     }
     const supabase = getSupabaseBrowserClient()
@@ -431,11 +432,11 @@ export default function App() {
   function authenticateDemo(user:SessionUser,remember:boolean){
     const safeUser=safeDemoUser(user)
     setSession(safeUser)
-    if(remember){localStorage.setItem(DEMO_SESSION_KEY,JSON.stringify(safeUser));localStorage.setItem(DEMO_REMEMBERED_KEY,user.username)}
-    else{localStorage.removeItem(DEMO_SESSION_KEY);localStorage.removeItem(DEMO_REMEMBERED_KEY)}
+    if(remember){localStorage.setItem(DEMO_SESSION_KEY,JSON.stringify(safeUser));localStorage.setItem(DEMO_REMEMBERED_KEY,user.username);sessionStorage.removeItem(DEMO_SESSION_KEY)}
+    else{localStorage.removeItem(DEMO_SESSION_KEY);localStorage.removeItem(DEMO_REMEMBERED_KEY);sessionStorage.setItem(DEMO_SESSION_KEY,JSON.stringify(safeUser))}
   }
-  function switchDemoRole(user:SessionUser){const safeUser=safeDemoUser(user);setSession(safeUser);if(localStorage.getItem(DEMO_SESSION_KEY))localStorage.setItem(DEMO_SESSION_KEY,JSON.stringify(safeUser))}
-  function logout(){if(supabaseConfigured)void getSupabaseBrowserClient().auth.signOut();else localStorage.removeItem(DEMO_SESSION_KEY);setSession(null)}
+  function switchDemoRole(user:SessionUser){const safeUser=safeDemoUser(user);setSession(safeUser);const store=localStorage.getItem(DEMO_SESSION_KEY)?localStorage:sessionStorage;store.setItem(DEMO_SESSION_KEY,JSON.stringify(safeUser))}
+  function logout(){if(supabaseConfigured)void getSupabaseBrowserClient().auth.signOut();else{localStorage.removeItem(DEMO_SESSION_KEY);sessionStorage.removeItem(DEMO_SESSION_KEY)}setSession(null)}
   if (checkingSession) return <div className="auth-shell"><section className="auth-panel"><div className="auth-step-icon"><span className="spinner" /></div><div className="auth-heading centered"><h2>Đang kiểm tra phiên đăng nhập</h2><p>PHARMASOFT đang chuẩn bị không gian làm việc của bạn.</p></div></section></div>
   if(!supabaseConfigured&&!session)return <DemoAuthModule onAuthenticated={authenticateDemo}/>
   return session

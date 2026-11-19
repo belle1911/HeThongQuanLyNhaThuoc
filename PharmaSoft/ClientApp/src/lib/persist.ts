@@ -25,7 +25,7 @@ export function setActor(name?: string | null) { actorName = name || '' }
 export function currentActor(): string {
   if (actorName) return actorName
   try {
-    const s = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null')
+    const s = JSON.parse(localStorage.getItem(SESSION_KEY) || sessionStorage.getItem(SESSION_KEY) || 'null')
     return s?.name || s?.username || 'Không rõ'
   } catch { return 'Không rõ' }
 }
